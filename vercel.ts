@@ -8,7 +8,7 @@ const config: VercelConfig = {
     }
 }
 
-const env = process.env.NODE_ENV;
+const env = process.env.ENVIRONMENT;
 const isVercel = env === "production";
 
 console.log(env);
