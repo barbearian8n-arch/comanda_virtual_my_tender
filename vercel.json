@@ -1,7 +1,3 @@
 {
-    "functions": {
-        "api/*.js": {
-            "runtime": "nodejs@24.x"
-        }
-    }
+    "functions": {}
 }
