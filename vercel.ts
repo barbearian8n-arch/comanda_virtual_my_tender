@@ -1,17 +1,9 @@
 import type { VercelConfig } from "@vercel/config";
 
-const config: VercelConfig = {
-    functions: {
-        "api/**/*.js": {
-            "maxDuration": 60
-        }
-    }
-}
+const config: VercelConfig = {}
 
 const env = process.env.ENVIRONMENT;
 const isVercel = env === "production";
-
-console.log(env);
 
 if (isVercel) {
     config.rewrites = [

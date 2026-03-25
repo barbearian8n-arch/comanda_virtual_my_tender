@@ -7,9 +7,12 @@
         "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
-        "outDir": "dist"
+        "outDir": "dist",
+        "baseUrl": ".",
     },
     "include": [
-        "vercel.ts"
+        "vercel.ts",
+        "api/**/*.ts",
+        "infra/**/*.ts"
     ]
 }
