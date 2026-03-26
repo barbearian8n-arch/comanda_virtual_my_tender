@@ -55,6 +55,7 @@ function CardComanda({ comanda }) {
                 <h5 className="card-title">Comanda do(a) {comanda.contact.name}</h5>
                 <p className="card-text small text-muted"><i className="bi bi-whatsapp me-1"></i> {formatPhone(comanda.contact.number_normalized)}</p>
                 <p className={`card-text ${statusColor[comanda.status]}`}>{statusText[comanda.status]}</p>
+                {comanda.is_weighing && <span className="badge bg-warning">Balanca</span>}
             </div>
         </div>
     )

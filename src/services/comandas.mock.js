@@ -116,7 +116,8 @@ export class ComandasMock {
             id: comanda.id,
             key: comanda.key,
             status: comanda.status,
-            contact: comanda.contact
+            contact: comanda.contact,
+            is_weighing: comanda.items.some(item => item.base_unit === "kg")
         }))
     }
 }
