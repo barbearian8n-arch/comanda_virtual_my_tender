@@ -1,6 +1,8 @@
 import { useParams } from "react-router-dom"
 import { useRequest } from "../hooks/useRequest"
 import { getComanda } from "../services/comandas"
+import { formatPhone, formatPrice, formatUnit } from "../utils/formatters"
+import { HandleResponse } from "../components/HandleResponse"
 
 export default function PageComanda() {
     const { key } = useParams()
@@ -73,71 +75,6 @@ function Item({ item }) {
                     {item.quantity} {formatUnit(item)} &times; {formatPrice(item.unit_price)}
                 </span>
             </div>
-        </div>
-    )
-}
-
-function formatPhone(phone) {
-    let reversed = reverseString(phone)
-    reversed = reversed.replace(/(\d{4})(\d{4})(\d{2})(\d*)/, "$1,$2,$3,$4")
-
-    const [countryCode, ddd, ...rest] = reversed.split(",").reverse().map(reverseString)
-    return `+${countryCode} (${ddd}) ${rest.join("-")}`
-}
-
-function reverseString(str) {
-    return str.split("").reverse().join("")
-}
-
-function formatUnit(item) {
-    switch (item.unit) {
-        case "u":
-            return "un"
-        case "kg":
-            return "kg"
-        case "g":
-            return "g"
-        case "l":
-            return "l"
-        default:
-            return item.unit
-    }
-}
-
-function formatPrice(price) {
-    return new Intl.NumberFormat("pt-BR", {
-        style: "currency",
-        currency: "BRL"
-    }).format(price)
-}
-
-function HandleResponse({ response, children }) {
-    const { data, loading, error } = response
-
-    if (loading) return <Loading />
-    if (error) return <Error error={error} />
-    if (!data) return null
-
-    return children(data)
-}
-
-function Loading() {
-    return (
-        <div className="loading-wrapper flex-grow-1">
-            <div className="spinner-border text-danger mb-3" role="status">
-                <span className="visually-hidden">Loading...</span>
-            </div>
-            <p className="fw-medium">Buscando comanda...</p>
-        </div>
-    )
-}
-
-function Error({ error }) {
-    return (
-        <div className="p-4 text-center">
-            <i className="bi bi-exclamation-circle text-danger fs-1 mb-3 d-block"></i>
-            <h5 className="fw-bold">Ops, algo deu errado</h5>
-            <p className="text-muted">{error.message}</p>
         </div>
     )
 }

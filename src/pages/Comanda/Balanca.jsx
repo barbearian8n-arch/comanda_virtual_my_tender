@@ -2,6 +2,8 @@ import { useState } from "react"
 import { useParams } from "react-router-dom"
 import { useRequest } from "../../hooks/useRequest"
 import { getComanda, updateItem } from "../../services/comandas"
+import { formatPrice, formatPhone } from "../../utils/formatters"
+import { HandleResponse } from "../../components/HandleResponse"
 
 export default function PageBalanca() {
     const { key } = useParams()
@@ -20,6 +22,8 @@ export default function PageBalanca() {
                                 <div>
                                     <h4 className="fw-bold mb-0">Balança</h4>
                                     <p className="text-muted mb-0 small">Comanda #{data.id}</p>
+                                    <p className="text-muted mb-0 small">Cliente: {data.contact.name}</p>
+                                    <p className="text-muted mb-0 small">Telefone: {formatPhone(data.contact.number_normalized)}</p>
                                 </div>
                                 <span className="status-badge bg-warning text-dark">Pesagem</span>
                             </div>
@@ -127,44 +131,6 @@ function EditableItem({ item, comandaKey, onSaved }) {
             >
                 {saving ? 'Salvando...' : success ? 'Salvo!' : 'Salvar Pesagem'}
             </button>
-        </div>
-    )
-}
-
-function formatPrice(price) {
-    return new Intl.NumberFormat("pt-BR", {
-        style: "currency",
-        currency: "BRL"
-    }).format(price)
-}
-
-function HandleResponse({ response, children }) {
-    const { data, loading, error } = response
-
-    if (loading) return <Loading />
-    if (error) return <Error error={error} />
-    if (!data) return null
-
-    return children(data)
-}
-
-function Loading() {
-    return (
-        <div className="loading-wrapper flex-grow-1">
-            <div className="spinner-border text-danger mt-5 mb-3" role="status">
-                <span className="visually-hidden">Loading...</span>
-            </div>
-            <p className="fw-medium">Buscando comanda...</p>
-        </div>
-    )
-}
-
-function Error({ error }) {
-    return (
-        <div className="p-4 text-center mt-5">
-            <i className="bi bi-exclamation-circle text-danger fs-1 mb-3 d-block"></i>
-            <h5 className="fw-bold">Ops, algo deu errado</h5>
-            <p className="text-muted">{error.message}</p>
         </div>
     )
 }
