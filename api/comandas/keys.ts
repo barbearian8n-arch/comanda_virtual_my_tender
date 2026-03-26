@@ -1,4 +1,4 @@
-import { createHandler } from "../../infra/handlers";
+import { createHandler } from "../../infra/handlers.cjs";
 import mytenderClient from "../../infra/mytender";
 import { VercelRequest, VercelResponse } from "@vercel/node";
 

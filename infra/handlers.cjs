@@ -51,4 +51,4 @@ function createHandler() {
     return handler;
 }
 
-export { createHandler };
+module.exports = { createHandler };
