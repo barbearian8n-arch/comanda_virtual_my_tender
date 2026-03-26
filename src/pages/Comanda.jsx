@@ -14,12 +14,12 @@ export default function PageComanda() {
             <HandleResponse response={comandaResp}>
                 {(data) => (
                     <>
-                        <div className="p-3">
-                            <div className="d-flex justify-content-between align-items-center mb-4">
+                        <div className="page-content">
+                            <div className="page-title-section">
                                 <div>
-                                    <h4 className="fw-bold mb-0">Comanda <span className="fw-normal text-muted">#{data.id}</span></h4>
-                                    <p className="text-muted mb-0 small">Cliente: {data.contact.name}</p>
-                                    <p className="text-muted mb-0 small">Telefone: {formatPhone(data.contact.number_normalized)}</p>
+                                    <h4>Comanda <span className="fw-normal text-muted">#{data.id}</span></h4>
+                                    <p className="subtitle">Cliente: {data.contact.name}</p>
+                                    <p className="subtitle">Telefone: {formatPhone(data.contact.number_normalized)}</p>
                                 </div>
                                 <span className={`status-badge ${data.status}`}>
                                     {data.status === 'open' ? 'Aberta' : data.status}
@@ -31,24 +31,19 @@ export default function PageComanda() {
                         </div>
 
                         <div className="app-footer">
-                            <div className="d-flex flex-column gap-3">
-                                <div className="d-flex flex-column justify-content-between">
-                                    <span className="footer-total-label">Total da Comanda</span>
-                                    <span className="footer-total-value">
-                                        {formatPrice(data.items.reduce((acc, item) => acc + item.total_price, 0))}
-                                    </span>
-                                </div>
-                                <div className="d-flex flex-column gap-2">
-                                    <span className="footer-total-label">Ações</span>
-                                    <div className="d-flex flex-row gap-2">
-                                        <button className="btn btn-dark rounded-pill px-4 fw-bold">
-                                            Fechar Conta
-                                        </button>
-                                        <Link to={`/comandas/${data.key}/balanca`} className="btn btn-dark rounded-pill px-4 fw-bold">
-                                            Balanca
-                                        </Link>
-                                    </div>
-                                </div>
+                            <div className="d-flex flex-column">
+                                <span className="footer-total-label">Total da Comanda</span>
+                                <span className="footer-total-value">
+                                    {formatPrice(data.items.reduce((acc, item) => acc + item.total_price, 0))}
+                                </span>
+                            </div>
+                            <div className="d-flex flex-row gap-2 mt-3 mt-md-0">
+                                <button className="btn btn-dark rounded-pill px-4 fw-bold">
+                                    Fechar Conta
+                                </button>
+                                <Link to={`/comandas/${data.key}/balanca`} className="btn btn-dark rounded-pill px-4 fw-bold">
+                                    Balança
+                                </Link>
                             </div>
                         </div>
                     </>
@@ -64,7 +59,7 @@ function Items({ items }) {
     }
 
     return (
-        <div className="d-flex flex-column gap-2 mb-4">
+        <div className="items-grid mb-4">
             {items.map((item) => (
                 <Item key={item.id} item={item} />
             ))}

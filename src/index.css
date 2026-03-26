@@ -6,6 +6,11 @@
   --text-main: #2f3542;
   --text-muted: #747d8c;
   --border-color: #ced6e0;
+  --max-content-width: 960px;
+}
+
+* {
+  box-sizing: border-box;
 }
 
 body {
@@ -16,22 +21,26 @@ body {
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Mobile App Shell */
+/* ===== App Shell ===== */
 .app-container {
-  max-width: 480px; /* Mobile width for desktop preview */
-  margin: 0 auto;
   min-height: 100vh;
   background-color: var(--bg-color);
-  box-shadow: 0 0 20px rgba(0,0,0,0.05);
-  position: relative;
   display: flex;
   flex-direction: column;
+  margin: 0 auto;
+  max-width: var(--max-content-width);
 }
 
-/* Sticky Mobile Header */
+@media (min-width: 768px) {
+  .app-container {
+    box-shadow: 0 0 30px rgba(0,0,0,0.06);
+  }
+}
+
+/* ===== Sticky Header ===== */
 .app-header {
   background-color: var(--card-bg);
-  padding: 1rem;
+  padding: 1rem 1.25rem;
   box-shadow: 0 2px 10px rgba(0,0,0,0.03);
   position: sticky;
   top: 0;
@@ -41,6 +50,13 @@ body {
   justify-content: space-between;
 }
 
+@media (min-width: 768px) {
+  .app-header {
+    padding: 1.25rem 2rem;
+    border-bottom: 1px solid var(--border-color);
+  }
+}
+
 .app-header h1 {
   font-size: 1.25rem;
   font-weight: 600;
@@ -48,25 +64,122 @@ body {
   letter-spacing: -0.5px;
 }
 
+@media (min-width: 768px) {
+  .app-header h1 {
+    font-size: 1.5rem;
+  }
+}
+
 .back-btn {
   color: var(--text-main);
   font-size: 1.5rem;
   line-height: 1;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 8px;
+  transition: background 0.2s;
 }
 
-/* Main Content Area */
+.back-btn:hover {
+  background: rgba(0,0,0,0.05);
+}
+
+/* ===== Main Content ===== */
 .app-main {
   flex: 1;
   overflow-y: auto;
-  padding-bottom: 80px; /* Space for sticky footer */
+  padding-bottom: 80px;
 }
 
-/* Custom Cards */
+/* ===== Page Content ===== */
+.page-content {
+  padding: 1rem;
+}
+
+@media (min-width: 768px) {
+  .page-content {
+    padding: 1.5rem 2rem;
+  }
+}
+
+/* ===== Page Title Section ===== */
+.page-title-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+}
+
+.page-title-section h4 {
+  font-weight: 700;
+  margin-bottom: 0;
+}
+
+.page-title-section .subtitle {
+  color: var(--text-muted);
+  font-size: 0.875rem;
+  margin: 0;
+}
+
+/* ===== Comanda Cards Grid (Home) ===== */
+.comandas-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 576px) {
+  .comandas-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+.comanda-card {
+  background: var(--card-bg);
+  border-radius: 16px;
+  padding: 1.25rem;
+  border: 1px solid var(--border-color);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  text-decoration: none;
+  color: inherit;
+  display: block;
+}
+
+.comanda-card:hover {
+  transform: translateY(-3px);
+  box-shadow: 0 8px 20px rgba(0,0,0,0.06);
+  color: inherit;
+}
+
+.comanda-card .card-title {
+  font-weight: 600;
+  font-size: 1.05rem;
+  margin-bottom: 0.5rem;
+  color: var(--text-main);
+}
+
+.comanda-card .card-meta {
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  margin-bottom: 0.25rem;
+}
+
+.comanda-card .card-footer-row {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-top: 0.75rem;
+}
+
+/* ===== Item Cards ===== */
 .item-card {
   background: var(--card-bg);
   border-radius: 16px;
-  padding: 1rem;
-  margin-bottom: 1rem;
+  padding: 1rem 1.25rem;
+  margin-bottom: 0.75rem;
   box-shadow: 0 4px 6px rgba(0,0,0,0.02);
   border: 1px solid var(--border-color);
   transition: transform 0.2s ease, box-shadow 0.2s ease;
@@ -75,6 +188,24 @@ body {
 .item-card:hover {
   transform: translateY(-2px);
   box-shadow: 0 6px 12px rgba(0,0,0,0.04);
+}
+
+/* Items Grid (Desktop: 2 cols, mobile: 1 col) */
+.items-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 0.75rem;
+}
+
+@media (min-width: 576px) {
+  .items-grid {
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+}
+
+.items-grid .item-card {
+  margin-bottom: 0;
 }
 
 .item-name {
@@ -95,7 +226,7 @@ body {
   font-size: 0.9rem;
 }
 
-/* Sticky Footer */
+/* ===== Sticky Footer ===== */
 .app-footer {
   position: sticky;
   bottom: 0;
@@ -103,11 +234,18 @@ body {
   padding: 1.25rem 1.5rem;
   border-top: 1px solid var(--border-color);
   box-shadow: 0 -4px 15px rgba(0,0,0,0.03);
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
   z-index: 1000;
   border-radius: 20px 20px 0 0;
+}
+
+@media (min-width: 768px) {
+  .app-footer {
+    padding: 1.5rem 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    border-radius: 20px 20px 0 0;
+  }
 }
 
 .footer-total-label {
@@ -124,7 +262,7 @@ body {
   color: var(--text-main);
 }
 
-/* Status Badges */
+/* ===== Status Badges ===== */
 .status-badge {
   padding: 0.4rem 0.8rem;
   border-radius: 50px;
@@ -132,6 +270,7 @@ body {
   font-weight: 600;
   text-transform: uppercase;
   letter-spacing: 0.5px;
+  white-space: nowrap;
 }
 
 .status-badge.open {
@@ -139,7 +278,7 @@ body {
   color: #0f9d58;
 }
 
-/* Loading state */
+/* ===== Loading State ===== */
 .loading-wrapper {
   display: flex;
   flex-direction: column;
@@ -147,4 +286,30 @@ body {
   justify-content: center;
   padding: 3rem;
   color: var(--text-muted);
+}
+
+/* ===== Balanca Form Cards (Desktop: 2 cols) ===== */
+.balanca-grid {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1rem;
+}
+
+@media (min-width: 576px) {
+  .balanca-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+.balanca-grid .item-card {
+  margin-bottom: 0;
+}
+
+/* ===== Utility ===== */
+.invisible {
+  visibility: hidden;
+}
+
+.text-decoration-none {
+  text-decoration: none;
 }

@@ -16,13 +16,13 @@ export default function PageBalanca() {
                     const weighableItems = data.items.filter(item => item.base_unit === "kg")
 
                     return (
-                        <div className="p-3">
-                            <div className="d-flex justify-content-between align-items-center mb-4">
+                        <div className="page-content">
+                            <div className="page-title-section">
                                 <div>
-                                    <h4 className="fw-bold mb-0">Balança</h4>
-                                    <p className="text-muted mb-0 small">Comanda #{data.id}</p>
-                                    <p className="text-muted mb-0 small">Cliente: {data.contact.name}</p>
-                                    <p className="text-muted mb-0 small">Telefone: {formatPhone(data.contact.number_normalized)}</p>
+                                    <h4>Balança</h4>
+                                    <p className="subtitle">Comanda #{data.id}</p>
+                                    <p className="subtitle">Cliente: {data.contact.name}</p>
+                                    <p className="subtitle">Telefone: {formatPhone(data.contact.number_normalized)}</p>
                                 </div>
                                 <span className="status-badge bg-warning text-dark">Pesagem</span>
                             </div>
@@ -43,7 +43,7 @@ function Items({ items, comandaKey, refetch }) {
     }
 
     return (
-        <div className="d-flex flex-column gap-3 mb-4">
+        <div className="balanca-grid mb-4">
             {items.map((item) => (
                 <EditableItem key={item.id} item={item} comandaKey={comandaKey} onSaved={refetch} />
             ))}

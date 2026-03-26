@@ -9,30 +9,30 @@ import { formatPhone } from "../utils/formatters"
 export default function PageHome() {
     const response = useRequest(getComandas)
 
-    console.log(response)
-
     return (
         <div className="d-flex flex-column h-100">
-            <div className="p-3">
-                <div className="d-flex justify-content-between align-items-center mb-4">
+            <div className="page-content">
+                <div className="page-title-section">
                     <div>
-                        <h4 className="fw-bold mb-0">Comandas Abertas</h4>
-                        <p className="text-muted mb-0 small">Lista de comandas abertas</p>
+                        <h4>Comandas Abertas</h4>
+                        <p className="subtitle">Lista de comandas abertas</p>
                     </div>
                 </div>
-                <div className="list-group">
-                    <HandleResponse response={response}>
-                        {(comandas) =>
-                            <div className="list-group">
-                                {comandas.map(comanda => (
-                                    <Link key={comanda.key} to={`/comandas/${comanda.key}`} className="list-group-item list-group-item-action">
-                                        <CardComanda comanda={comanda} />
-                                    </Link>
-                                ))}
-                            </div>
-                        }
-                    </HandleResponse>
-                </div>
+                <HandleResponse response={response}>
+                    {(comandas) => (
+                        <div className="comandas-grid">
+                            {comandas.map(comanda => (
+                                <Link
+                                    key={comanda.key}
+                                    to={`/comandas/${comanda.key}`}
+                                    className="comanda-card"
+                                >
+                                    <CardComanda comanda={comanda} />
+                                </Link>
+                            ))}
+                        </div>
+                    )}
+                </HandleResponse>
             </div>
         </div>
     )
@@ -50,13 +50,13 @@ function CardComanda({ comanda }) {
     }
 
     return (
-        <div className="card">
-            <div className="card-body">
-                <h5 className="card-title">Comanda do(a) {comanda.contact.name}</h5>
-                <p className="card-text small text-muted"><i className="bi bi-whatsapp me-1"></i> {formatPhone(comanda.contact.number_normalized)}</p>
-                <p className={`card-text ${statusColor[comanda.status]}`}>{statusText[comanda.status]}</p>
-                {comanda.is_weighing && <span className="badge bg-warning">Balanca</span>}
+        <>
+            <div className="card-title">Comanda do(a) {comanda.contact.name}</div>
+            <p className="card-meta"><i className="bi bi-whatsapp me-1"></i> {formatPhone(comanda.contact.number_normalized)}</p>
+            <div className="card-footer-row">
+                <span className={`${statusColor[comanda.status]} fw-semibold small`}>{statusText[comanda.status]}</span>
+                {comanda.is_weighing && <span className="badge bg-warning text-dark">Balança</span>}
             </div>
-        </div>
+        </>
     )
 }
