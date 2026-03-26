@@ -9,6 +9,20 @@
         "forceConsistentCasingInFileNames": true,
         "outDir": "dist",
         "baseUrl": ".",
+        "paths": {
+            "infra/*": [
+                "./infra/*"
+            ],
+            "models/*": [
+                "./models/*"
+            ],
+            "api/*": [
+                "./api/*"
+            ],
+            "src/*": [
+                "./src/*"
+            ]
+        }
     },
     "include": [
         "vercel.ts",
