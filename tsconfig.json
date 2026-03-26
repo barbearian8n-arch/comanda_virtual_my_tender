@@ -13,6 +13,7 @@
     "include": [
         "vercel.ts",
         "api/**/*.ts",
-        "infra/**/*.ts"
+        "infra/**/*.ts",
+        "models/**/*.ts"
     ]
 }
