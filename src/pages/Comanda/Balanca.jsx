@@ -7,8 +7,7 @@ import { HandleResponse } from "../../components/HandleResponse"
 
 export default function PageBalanca() {
     const { key } = useParams()
-    const comandaKey = `comanda/${key}`
-    const comandaResp = useRequest(getComanda, [comandaKey])
+    const comandaResp = useRequest(getComanda, [key])
 
     return (
         <div className="d-flex flex-column h-100">
@@ -29,7 +28,7 @@ export default function PageBalanca() {
                             </div>
 
                             <h5 className="fw-bold mb-3">Produtos para Pesagem</h5>
-                            <Items items={weighableItems} comandaKey={comandaKey} refetch={comandaResp.refetch} />
+                            <Items items={weighableItems} comandaKey={key} refetch={comandaResp.refetch} />
                         </div>
                     )
                 }}

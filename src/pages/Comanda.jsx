@@ -3,12 +3,11 @@ import { useRequest } from "../hooks/useRequest"
 import { getComanda } from "../services/comandas"
 import { formatPhone, formatPrice, formatUnit } from "../utils/formatters"
 import { HandleResponse } from "../components/HandleResponse"
+import { Link } from "react-router-dom"
 
 export default function PageComanda() {
     const { key } = useParams()
-    // Mock expects "comanda/5511999999999" but params only has "5511999999999"
-    const comandaKey = `comanda/${key}`
-    const comandaResp = useRequest(getComanda, [comandaKey])
+    const comandaResp = useRequest(getComanda, [key])
 
     return (
         <div className="d-flex flex-column h-100">
@@ -32,15 +31,25 @@ export default function PageComanda() {
                         </div>
 
                         <div className="app-footer">
-                            <div className="d-flex flex-column">
-                                <span className="footer-total-label">Total Gasto</span>
-                                <span className="footer-total-value">
-                                    {formatPrice(data.items.reduce((acc, item) => acc + item.total_price, 0))}
-                                </span>
+                            <div className="d-flex flex-column gap-3">
+                                <div className="d-flex flex-column justify-content-between">
+                                    <span className="footer-total-label">Total da Comanda</span>
+                                    <span className="footer-total-value">
+                                        {formatPrice(data.items.reduce((acc, item) => acc + item.total_price, 0))}
+                                    </span>
+                                </div>
+                                <div className="d-flex flex-column gap-2">
+                                    <span className="footer-total-label">Ações</span>
+                                    <div className="d-flex flex-row gap-2">
+                                        <button className="btn btn-dark rounded-pill px-4 fw-bold">
+                                            Fechar Conta
+                                        </button>
+                                        <Link to={`/comandas/${data.key}/balanca`} className="btn btn-dark rounded-pill px-4 fw-bold">
+                                            Balanca
+                                        </Link>
+                                    </div>
+                                </div>
                             </div>
-                            <button className="btn btn-dark rounded-pill px-4 fw-bold">
-                                Fechar Conta
-                            </button>
                         </div>
                     </>
                 )}

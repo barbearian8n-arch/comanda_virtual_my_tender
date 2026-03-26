@@ -4,7 +4,8 @@ export class ComandasMock {
             {
                 id: "b75b3d12-b530e33b",
                 status: "open",
-                key: "comanda/558112345678",
+                key: "558112345678",
+                redis_key: "comanda/558112345678",
                 items: [
                     {
                         id: 1,
@@ -44,7 +45,8 @@ export class ComandasMock {
             {
                 id: "b75b3d12-b530e33b",
                 status: "open",
-                key: "comanda/5511999999999",
+                key: "5511999999999",
+                redis_key: "comanda/5511999999999",
                 items: [
                     {
                         id: 1,
@@ -107,5 +109,14 @@ export class ComandasMock {
         }
 
         return comanda.items[itemIndex]
+    }
+
+    async getComandas() {
+        return this.comandas.map(comanda => ({
+            id: comanda.id,
+            key: comanda.key,
+            status: comanda.status,
+            contact: comanda.contact
+        }))
     }
 }

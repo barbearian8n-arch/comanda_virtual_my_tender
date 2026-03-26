@@ -10,3 +10,7 @@ export async function getComanda(key) {
 export async function updateItem(key, itemId, updates) {
     return await engine.updateItem(key, itemId, updates)
 }
+
+export async function getComandas() {
+    return await engine.getComandas()
+}
