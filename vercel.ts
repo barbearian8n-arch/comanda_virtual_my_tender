@@ -14,8 +14,8 @@ const config: VercelConfig = {
     //     }
     // ]
     "functions": {
-        "api/**/*.js": {
-            "includeFiles": "{infra/**/*,models/**/*}"
+        "api/**/*.cjs": {
+            "includeFiles": "infra/**/*"
         }
     }
 }
