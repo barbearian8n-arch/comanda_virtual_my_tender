@@ -1,4 +1,4 @@
-const createHandler = require("../infra/handlers.js");
+import { createHandler } from "../infra/handlers";
 // import comandas from "../models/comandas";
 
 const handler = createHandler();
@@ -17,4 +17,4 @@ handler.get(async (req, res) => {
     res.status(200).json({ ok: true });
 });
 
-module.exports = handler;
+export default handler;
