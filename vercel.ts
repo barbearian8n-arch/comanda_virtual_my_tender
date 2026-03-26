@@ -1,6 +1,19 @@
 import type { VercelConfig } from "@vercel/config";
 
-const config: VercelConfig = {}
+const config: VercelConfig = {
+    builds: [
+        {
+            src: "api/**/*.ts",
+            use: "@vercel/node",
+            config: {
+                includeFiles: [
+                    "infra/**/*",
+                    "models/**/*"
+                ],
+            }
+        }
+    ]
+}
 
 const env = process.env.ENVIRONMENT;
 const isVercel = env === "production";
