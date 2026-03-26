@@ -7,22 +7,7 @@
         "esModuleInterop": true,
         "skipLibCheck": true,
         "forceConsistentCasingInFileNames": true,
-        "outDir": "dist",
-        "baseUrl": ".",
-        "paths": {
-            "infra/*": [
-                "./infra/*"
-            ],
-            "models/*": [
-                "./models/*"
-            ],
-            "api/*": [
-                "./api/*"
-            ],
-            "src/*": [
-                "./src/*"
-            ]
-        }
+        "outDir": "dist"
     },
     "include": [
         "vercel.ts",

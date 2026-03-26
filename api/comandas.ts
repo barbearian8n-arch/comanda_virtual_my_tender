@@ -1,7 +1,6 @@
-import { createHandler } from "infra/handlers";
-import mytenderClient from "infra/mytender";
+import { createHandler } from "../infra/handlers";
 import { VercelRequest, VercelResponse } from "@vercel/node";
-import comandas from "models/comandas";
+import comandas from "../models/comandas";
 
 const handler = createHandler();
 
