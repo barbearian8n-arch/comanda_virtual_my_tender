@@ -11,19 +11,29 @@ export class ComandasAPI {
         })
     }
 
+    async getComandas() {
+        const response = await this.axios.get(`/comandas`)
+        if (response.status !== 200) {
+            throw new Error("Erro ao buscar comandas")
+        }
+
+        return response.data
+    }
+
     async getComanda(key) {
-        const response = await this.axios.get(`/comandas/${key}`)
-        if (!response.ok) {
+        const response = await this.axios.get(`/comandas?key=${key}`)
+        if (response.status !== 200) {
             throw new Error("Erro ao buscar comanda")
         }
-        return await response.json()
+
+        return response.data
     }
 
     async updateItem(key, itemId, data) {
         const response = await this.axios.put(`/comandas/${key}/items/${itemId}`, data)
-        if (!response.ok) {
+        if (response.status !== 200) {
             throw new Error("Erro ao atualizar item")
         }
-        return await response.json()
+        return response.data
     }
 }

@@ -40,7 +40,7 @@ async function getComanda(key: string) {
         throw new Error(resp.data.message);
     }
 
-    return resp.data.data;
+    return resp.data.comanda;
 }
 
 export default {
