@@ -9,7 +9,7 @@
 // export type MethodKey = keyof MethodHandlerRecord;
 // export type MethodHandler = MethodHandlerRecord[MethodKey];
 
-export function createHandler() {
+function createHandler() {
     const methods = {}
 
     const handler = (req, res) => {
@@ -50,3 +50,5 @@ export function createHandler() {
 
     return handler;
 }
+
+module.exports = { createHandler };
