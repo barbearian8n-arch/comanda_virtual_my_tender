@@ -1,5 +1,5 @@
-import { createHandler } from "../infra/handlers";
-import comandas from "../models/comandas";
+import { createHandler } from "../infra/handlers.js";
+import comandas from "../models/comandas.js";
 
 const handler = createHandler();
 

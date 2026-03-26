@@ -1,4 +1,4 @@
-import mytenderClient from "../infra/mytender";
+import mytenderClient from "../infra/mytender.js";
 
 /**
  * @typedef {object} Comanda
