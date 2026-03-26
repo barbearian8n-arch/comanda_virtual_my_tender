@@ -15,10 +15,7 @@ const config: VercelConfig = {
     // ]
     "functions": {
         "api/**/*.js": {
-            "includeFiles": [
-                "infra/**/*",
-                "models/**/*"
-            ] as any  // Inclui o diretório 'infra' no deploy
+            "includeFiles": "{infra/**/*,models/**/*}"
         }
     }
 }
