@@ -22,6 +22,7 @@ export class ComandasAPI {
 
     async getComanda(key) {
         const response = await this.axios.get(`/comandas?key=${key}`)
+
         if (response.status !== 200) {
             throw new Error("Erro ao buscar comanda")
         }
@@ -33,6 +34,14 @@ export class ComandasAPI {
         const response = await this.axios.put(`/comandas/${key}/items/${itemId}`, data)
         if (response.status !== 200) {
             throw new Error("Erro ao atualizar item")
+        }
+        return response.data
+    }
+
+    async saveWeights(key, items) {
+        const response = await this.axios.put(`/comandas/weights`, { key, items })
+        if (response.status !== 200) {
+            throw new Error("Erro ao salvar pesagens")
         }
         return response.data
     }

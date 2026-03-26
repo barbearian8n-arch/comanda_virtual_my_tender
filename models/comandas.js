@@ -1,4 +1,5 @@
 import mytenderClient from "../infra/mytender.js";
+import { NotFoundError } from "../infra/errors.js";
 
 /**
  * @typedef {object} Comanda
@@ -47,13 +48,60 @@ async function listComandas() {
 async function getComanda(key) {
     const resp = await mytenderClient.get(`/comandas?key=${key}`);
     if (!resp.data.success) {
-        throw new Error(resp.data.message);
+        const error = resp.data.error;
+
+        if (error === "not-found") {
+            throw new NotFoundError("Comanda não encontrada");
+        }
+
+        throw new Error(error);
     }
 
     return resp.data.comanda;
 }
 
+/**
+ * @param {string} key
+ * @param {ComandaItem[]} items
+ * @returns {Promise<void>}
+ */
+async function saveWeights(key, items) {
+    const comanda = await getComanda(key);
+
+    comanda.items = comanda.items.map(item => {
+        const updatedItem = items.find(i => i.id === item.id);
+        if (updatedItem) {
+            return updatedItem;
+        }
+        return item;
+    });
+
+    console.log(comanda);
+    // const resp = await setComanda(comanda);
+
+    if (!resp.data.success) {
+        throw new Error(resp.data.message);
+    }
+
+    return resp.data;
+}
+
+/**
+ * @param {Comanda} comanda
+ * @returns {Promise<void>}
+ */
+async function setComanda(comanda) {
+    const resp = await mytenderClient.post(`/comandas`, comanda);
+    if (!resp.data.success) {
+        throw new Error(resp.data.message);
+    }
+
+    return resp.data;
+}
+
 export default {
     listComandas,
-    getComanda
+    getComanda,
+    saveWeights,
+    setComanda
 }

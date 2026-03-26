@@ -120,4 +120,18 @@ export class ComandasMock {
             is_weighing: comanda.items.some(item => item.base_unit === "kg")
         }))
     }
+
+    async saveWeights(key, items) {
+        const comanda = this.comandas.find(c => c.key === key);
+        if (!comanda) throw new Error("404 - Comanda no encontrada");
+
+        items.forEach(updatedItem => {
+            const index = comanda.items.findIndex(item => item.id === updatedItem.id);
+            if (index !== -1) {
+                comanda.items[index] = { ...comanda.items[index], ...updatedItem };
+            }
+        });
+
+        return { success: true };
+    }
 }

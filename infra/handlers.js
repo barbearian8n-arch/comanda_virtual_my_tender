@@ -9,26 +9,41 @@
 // export type MethodKey = keyof MethodHandlerRecord;
 // export type MethodHandler = MethodHandlerRecord[MethodKey];
 
+import { ApiError, MethodNotAllowedError } from "./errors.js";
+
 function createHandler() {
     const methods = {}
 
-    const handler = (req, res) => {
+    const handler = async (req, res) => {
         try {
             const method = req.method?.toLowerCase();
 
             if (!method) {
-                res.status(405).end("Method Not Allowed");
-                return;
+                throw new MethodNotAllowedError("Method Not Allowed");
             }
 
             if (methods[method]) {
-                methods[method](req, res);
+                await methods[method](req, res);
             } else {
-                res.status(405).end("Method Not Allowed");
+                throw new MethodNotAllowedError("Method Not Allowed");
             }
         } catch (error) {
+            if (error instanceof ApiError) {
+                res.status(error.statusCode).json({
+                    success: false,
+                    message: error.message,
+                    error: error.code
+                });
+
+                return;
+            }
+
             console.error(error);
-            res.status(500).end("Internal Server Error");
+            res.status(500).json({
+                success: false,
+                message: "Internal Server Error",
+                error: "internal-error"
+            });
         }
     };
 

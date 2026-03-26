@@ -14,3 +14,7 @@ export async function updateItem(key, itemId, updates) {
 export async function getComandas() {
     return await engine.getComandas()
 }
+
+export async function saveWeights(key, items) {
+    return await engine.saveWeights(key, items)
+}

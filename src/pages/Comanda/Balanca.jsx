@@ -1,13 +1,33 @@
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useParams } from "react-router-dom"
 import { useRequest } from "../../hooks/useRequest"
-import { getComanda, updateItem } from "../../services/comandas"
+import { getComanda, updateItem, saveWeights } from "../../services/comandas"
 import { formatPrice, formatPhone } from "../../utils/formatters"
 import { HandleResponse } from "../../components/HandleResponse"
 
 export default function PageBalanca() {
     const { key } = useParams()
     const comandaResp = useRequest(getComanda, [key])
+    const [weightItems, setWeightItems] = useState([])
+
+    useEffect(() => {
+        if (comandaResp.data != null) {
+            setWeightItems(comandaResp.data.items.filter(item => item.base_unit === "kg").map(item => ({ ...item, price: item.total_price })))
+        }
+    }, [comandaResp.data])
+
+    const handleItemChange = (id, item) => {
+        setWeightItems(prev => prev.map(i => i.id === id ? { ...i, ...item } : i))
+    }
+
+    const handleSaveWeightedItems = async () => {
+        try {
+            await saveWeights(key, weightItems)
+            comandaResp.refetch()
+        } catch (error) {
+            console.error("Erro ao salvar pesagens:", error)
+        }
+    }
 
     return (
         <div className="d-flex flex-column h-100">
@@ -28,7 +48,8 @@ export default function PageBalanca() {
                             </div>
 
                             <h5 className="fw-bold mb-3">Produtos para Pesagem</h5>
-                            <Items items={weighableItems} comandaKey={key} refetch={comandaResp.refetch} />
+                            <Items items={weighableItems} onWeightItemsChange={handleItemChange} />
+                            <button className="btn btn-dark w-100" onClick={handleSaveWeightedItems}>Salvar Pesagens</button>
                         </div>
                     )
                 }}
@@ -37,7 +58,7 @@ export default function PageBalanca() {
     )
 }
 
-function Items({ items, comandaKey, refetch }) {
+function Items({ items, onWeightItemsChange }) {
     if (!items || items.length === 0) {
         return <p className="text-center text-muted mt-4">Nenhum produto para pesar.</p>
     }
@@ -45,43 +66,62 @@ function Items({ items, comandaKey, refetch }) {
     return (
         <div className="balanca-grid mb-4">
             {items.map((item) => (
-                <EditableItem key={item.id} item={item} comandaKey={comandaKey} onSaved={refetch} />
+                <EditableItem key={item.id} item={item} onWeightItemsChange={onWeightItemsChange} />
             ))}
         </div>
     )
 }
 
-function EditableItem({ item, comandaKey, onSaved }) {
-    const [peso, setPeso] = useState(item.quantity)
-    const [unit, setUnit] = useState(item.unit)
-    const [price, setPrice] = useState(item.total_price)
-    const [saving, setSaving] = useState(false)
+function EditableItem({ item: initialItem, onWeightItemsChange }) {
+    const [item, setItem] = useState(initialItem)
+    const [changed, setChanged] = useState(false)
     const [success, setSuccess] = useState(false)
 
-    const handleSave = async () => {
-        setSaving(true)
-        setSuccess(false)
-        try {
-            await updateItem(comandaKey, item.id, {
-                quantity: parseFloat(peso),
-                unit: unit,
-                total_price: parseFloat(price)
-            })
-            setSuccess(true)
-            setTimeout(() => setSuccess(false), 2000)
-            if (onSaved) onSaved()
-        } catch (error) {
-            console.error("Erro ao salvar", error)
-        } finally {
-            setSaving(false)
+    console.log(item)
+
+    useEffect(() => {
+        if (changed) {
+            onWeightItemsChange(item.id, item)
         }
+    }, [item.quantity, item.unit, item.total_price])
+
+    function handleChange(key, e) {
+        let value = e.target.value;
+        const newItem = { ...item }
+
+        if (key === "quantity" || key === "total_price") {
+            value = parseFloat(value);
+        }
+
+        newItem[key] = value;
+
+        if (key === "quantity" || item.unit === "kg") {
+            newItem.total_price = newItem.quantity * newItem.base_price;
+        }
+
+        if (key === "quantity" || item.unit === "g") {
+            newItem.total_price = newItem.quantity * newItem.base_price / 1000;
+        }
+
+        setItem(newItem)
+        setChanged(true)
     }
 
     return (
         <div className="item-card d-flex flex-column" style={{ borderLeft: success ? '4px solid #10b981' : 'none' }}>
             <div className="d-flex justify-content-between align-items-start mb-3">
-                <span className="item-name fs-5">{item.name}</span>
-                <span className="badge bg-secondary">Preço ref: {formatPrice(item.unit_price)} por {item.base_unit}</span>
+                <span className="item-name fs-5">{item.name.split(" - ")[0]}</span>
+                <div className="d-flex flex-column align-items-end gap-2">
+                    <span className="badge bg-secondary">Preço ref: {formatPrice(item.base_price)} por {item.base_unit}</span>
+                    {
+                        changed ? (
+                            <span className="badge bg-success">Alterado</span>
+                        ) : item.needs_be_weighed ? (
+                            <span className="badge bg-dark">Precisa ser pesado</span>
+                        ) : (
+                            <span className="badge bg-success">Já pesado</span>
+                        )}
+                </div>
             </div>
 
             <div className="row g-2 mb-3">
@@ -90,8 +130,8 @@ function EditableItem({ item, comandaKey, onSaved }) {
                     <input
                         type="number"
                         className="form-control form-control-sm"
-                        value={peso}
-                        onChange={e => setPeso(e.target.value)}
+                        value={item.quantity}
+                        onChange={e => handleChange("quantity", e)}
                         step="0.01"
                     />
                 </div>
@@ -99,8 +139,8 @@ function EditableItem({ item, comandaKey, onSaved }) {
                     <label className="form-label small text-muted mb-1">Unid</label>
                     <select
                         className="form-select form-select-sm"
-                        value={unit}
-                        onChange={e => setUnit(e.target.value)}
+                        value={item.unit}
+                        onChange={e => handleChange("unit", e)}
                     >
                         <option value="g">g</option>
                         <option value="kg">kg</option>
@@ -115,21 +155,13 @@ function EditableItem({ item, comandaKey, onSaved }) {
                         <input
                             type="number"
                             className="form-control"
-                            value={price}
-                            onChange={e => setPrice(e.target.value)}
+                            value={item.total_price}
+                            onChange={e => handleChange("total_price", e)}
                             step="0.01"
                         />
                     </div>
                 </div>
             </div>
-
-            <button
-                className={`btn btn-sm ${success ? 'btn-success' : 'btn-dark'} w-100 fw-bold rounded-pill`}
-                onClick={handleSave}
-                disabled={saving}
-            >
-                {saving ? 'Salvando...' : success ? 'Salvo!' : 'Salvar Pesagem'}
-            </button>
         </div>
     )
 }

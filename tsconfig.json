@@ -13,6 +13,8 @@
         "vercel.ts",
         "api/**/*.ts",
         "infra/**/*.ts",
-        "models/**/*.ts"
+        "models/**/*.ts",
+        "models/comandas.js",
+        "infra/mytender.js"
     ]
 }
