@@ -17,7 +17,7 @@ function mapComandaToAPI(comanda) {
             number: String(comanda.client_numero),
             number_normalized: String(comanda.client_numero)
         },
-        items: comanda.items.map(mapComandaItemToAPI),
+        items: comanda.items.map(item => mapComandaItemToAPI(comanda.command_id, item)),
         formated_items: comanda.formated_items
     };
 }
@@ -26,14 +26,17 @@ function mapComandaToAPI(comanda) {
  * @param {DBCommandItemJoin} item 
  * @returns {APICommandItem}
  */
-function mapComandaItemToAPI(item) {
+function mapComandaItemToAPI(command_id, item) {
     return {
         id: item.id,
         name: item.menu_nome,
+        command_id: command_id,
+
         menu_info: {
             id: item.menu_id,
             name: item.menu_nome,
             unit: item.menu_unidade,
+            price: item.menu_preco,
             price_per_unit: item.menu_preco_por_uni,
             category: item.menu_categoria,
             is_available: item.menu_is_disponivel,
@@ -70,7 +73,8 @@ function mapCommandItemsToDB(items) {
         real_unit: item.real.unit,
         real_quantity: item.real.quantity,
         real_total_price: item.real.total_price,
-        to_be_weighed: item.to_be_weighed
+        to_be_weighed: item.to_be_weighed,
+        command_id: item.command_id
     }));
 }
 
@@ -112,7 +116,7 @@ async function updateCommandItems(items) {
 
     const { data, error } = await supabase
         .schema("public")
-        .from("command_items")
+        .from("command_item")
         .upsert(dbItems)
         .select();
 

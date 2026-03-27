@@ -12,9 +12,10 @@ export function reverseString(str) {
 }
 
 export function formatUnit(item) {
-    switch (item.unit) {
+    const unit = typeof item === 'string' ? item : (item?.unit || '');
+    switch (unit) {
         case "u":
-            return "un"
+            return "unidades"
         case "kg":
             return "kg"
         case "g":
@@ -22,7 +23,7 @@ export function formatUnit(item) {
         case "l":
             return "l"
         default:
-            return item.unit
+            return unit
     }
 }
 

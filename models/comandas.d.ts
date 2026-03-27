@@ -25,6 +25,7 @@ interface APICommandItem {
         id: number;
         name: string;
         unit: string;
+        price: number;
         price_per_unit: number;
         category: string;
         is_available: boolean;
