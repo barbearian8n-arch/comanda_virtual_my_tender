@@ -12,11 +12,14 @@ export default function PageHome() {
     return (
         <div className="d-flex flex-column h-100">
             <div className="page-content">
-                <div className="page-title-section">
+                <div className="d-flex justify-content-between align-items-center page-title-section">
                     <div>
                         <h4>Comandas Abertas</h4>
                         <p className="subtitle">Lista de comandas abertas</p>
                     </div>
+                    <Link to="/balanca" className="btn btn-warning fw-bold text-dark">
+                        <i className="bi bi-speedometer2 me-2"></i> Balança
+                    </Link>
                 </div>
                 <HandleResponse response={response}>
                     {(comandas) => (
@@ -49,13 +52,15 @@ function CardComanda({ comanda }) {
         closed: "Fechada"
     }
 
+    const isWeighing = comanda.items?.some(i => i.to_be_weighed || (i.menu_info && i.menu_info.unit === "kg") || i.base_unit === "kg") || comanda.is_weighing;
+
     return (
         <>
             <div className="card-title">Comanda do(a) {comanda.contact.name}</div>
             <p className="card-meta"><i className="bi bi-whatsapp me-1"></i> {formatPhone(comanda.contact.number_normalized)}</p>
-            <div className="card-footer-row">
+            <div className="card-footer-row mt-2">
                 <span className={`${statusColor[comanda.status]} fw-semibold small`}>{statusText[comanda.status]}</span>
-                {comanda.is_weighing && <span className="badge bg-warning text-dark">Balança</span>}
+                {isWeighing && <span className="badge bg-warning text-dark">Balança</span>}
             </div>
         </>
     )

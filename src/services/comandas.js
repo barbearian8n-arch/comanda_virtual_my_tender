@@ -15,6 +15,10 @@ export async function getComandas() {
     return await engine.getComandas()
 }
 
+export async function getComandasWithKgItems() {
+    return await engine.getComandasWithKgItems()
+}
+
 export async function saveWeights(key, items) {
     return await engine.saveWeights(key, items)
 }

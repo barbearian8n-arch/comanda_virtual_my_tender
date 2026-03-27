@@ -117,8 +117,14 @@ export class ComandasMock {
             key: comanda.key,
             status: comanda.status,
             contact: comanda.contact,
-            is_weighing: comanda.items.some(item => item.base_unit === "kg")
+            items: comanda.items,
+            is_weighing: comanda.items.some(item => item.base_unit === "kg" || item.to_be_weighed || (item.menu_info && item.menu_info.unit === "kg"))
         }))
+    }
+
+    async getComandasWithKgItems() {
+        const comandas = await this.getComandas()
+        return comandas.filter(comanda => comanda.is_weighing)
     }
 
     async saveWeights(key, items) {

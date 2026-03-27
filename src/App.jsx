@@ -2,11 +2,12 @@ import { Routes, Route, Link } from 'react-router-dom'
 import PageComanda from './pages/Comanda'
 import PageBalanca from './pages/Comanda/Balanca'
 import PageHome from './pages/Home'
+import PageBalancaGeral from './pages/BalancaGeral'
 import { useNavigate } from 'react-router-dom'
 
 function App() {
   const navigate = useNavigate()
-  const isFirstPage = window.location.pathname === "/"
+  const isFirstPage = window.location.pathname === "/" || window.location.pathname === "/balanca"
 
   function historyBack() {
     if (isFirstPage) {
@@ -28,6 +29,7 @@ function App() {
       <main className="app-main">
         <Routes>
           <Route path="/" element={<PageHome />} />
+          <Route path="/balanca" element={<PageBalancaGeral />} />
           <Route path="/comandas/:key" element={<PageComanda />} />
           <Route path="/comandas/:key/balanca" element={<PageBalanca />} />
         </Routes>

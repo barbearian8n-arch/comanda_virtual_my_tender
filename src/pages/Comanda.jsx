@@ -34,7 +34,7 @@ export default function PageComanda() {
                             <div className="d-flex flex-column">
                                 <span className="footer-total-label">Total da Comanda</span>
                                 <span className="footer-total-value">
-                                    {formatPrice(data.items.reduce((acc, item) => acc + item.total_price, 0))}
+                                    {formatPrice(data.items.reduce((acc, item) => acc + (item.real?.total_price || item.requested?.estimated_price || item.total_price || 0), 0))}
                                 </span>
                             </div>
                             <div className="d-flex flex-row gap-2 mt-3 mt-md-0">
@@ -68,15 +68,21 @@ function Items({ items }) {
 }
 
 function Item({ item }) {
+    const nome = item.menu_info?.name || item.name;
+    const finalPrice = item.real?.total_price || item.requested?.estimated_price || item.total_price || 0;
+    const qty = item.real?.quantity || item.requested?.quantity || item.quantity;
+    const unit = item.real?.unit || item.requested?.unit || item.unit;
+    const unitPrice = item.menu_info?.price_per_unit || item.unit_price || 0;
+
     return (
         <div className="item-card">
             <div className="d-flex justify-content-between align-items-start mb-1">
-                <span className="item-name">{item.name}</span>
-                <span className="item-price">{formatPrice(item.total_price)}</span>
+                <span className="item-name">{nome}</span>
+                <span className="item-price">{formatPrice(finalPrice)}</span>
             </div>
             <div className="d-flex justify-content-between align-items-center">
                 <span className="item-meta">
-                    {item.quantity} {formatUnit(item)} &times; {formatPrice(item.unit_price)}
+                    {qty} {formatUnit({unit})} &times; {formatPrice(unitPrice)}
                 </span>
             </div>
         </div>

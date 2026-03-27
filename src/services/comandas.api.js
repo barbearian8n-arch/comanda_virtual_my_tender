@@ -20,6 +20,13 @@ export class ComandasAPI {
         return response.data
     }
 
+    async getComandasWithKgItems() {
+        const comandas = await this.getComandas()
+        return comandas.filter(comanda => 
+            (comanda.items || []).some(item => item.to_be_weighed || (item.menu_info && item.menu_info.unit === "kg"))
+        )
+    }
+
     async getComanda(key) {
         const response = await this.axios.get(`/comandas?key=${key}`)
 
