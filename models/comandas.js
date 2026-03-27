@@ -1,106 +1,130 @@
-import mytenderClient from "../infra/mytender.js";
-import { NotFoundError, ValidationError } from "../infra/errors.js";
+import { NotFoundError } from "../infra/errors.js";
+import supabase from "../infra/supabase.js";
 
 /**
- * @typedef {object} Comanda
- * @property {number} id
- * @property {string} key
- * @property {string} redis_key
- * @property {string} status
- * @property {object} contact
- * @property {number} contact.lead_id
- * @property {string} contact.name
- * @property {string} contact.number
- * @property {string} contact.number_normalized
- * @property {ComandaItem[]} items
- * @property {string} formated_items
- * }
+ * @param {DBViewCommandJoin} comanda 
+ * @returns {APICommand}
  */
+function mapComandaToAPI(comanda) {
+    return {
+        id: comanda.command_id,
+        key: comanda.command_key,
+        redis_key: `comanda/${comanda.command_key}`,
+        status: comanda.command_status,
+        contact: {
+            lead_id: comanda.client_id,
+            name: comanda.client_name,
+            number: String(comanda.client_numero),
+            number_normalized: String(comanda.client_numero)
+        },
+        items: comanda.items.map(mapComandaItemToAPI),
+        formated_items: comanda.formated_items
+    };
+}
 
 /**
- * @typedef {object} ComandaItem
- * @property {number} id
- * @property {string} name
- * @property {number} quantity
- * @property {number} unit_price
- * @property {number} total_price
- * @property {string} base_unit
- * @property {string} formated_item
- * @property {boolean} needs_be_weighed
-*/
+ * @param {DBCommandItemJoin} item 
+ * @returns {APICommandItem}
+ */
+function mapComandaItemToAPI(item) {
+    return {
+        id: item.id,
+        name: item.menu_nome,
+        menu_info: {
+            id: item.menu_id,
+            name: item.menu_nome,
+            unit: item.menu_unidade,
+            price_per_unit: item.menu_preco_por_uni,
+            category: item.menu_categoria,
+            is_available: item.menu_is_disponivel,
+            g_per_unit: item.menu_g_por_uni
+        },
+
+        requested: {
+            quantity: item.req_quantity,
+            unit: item.req_unit,
+            estimated_price: item.req_estimated_price,
+        },
+
+        real: {
+            quantity: item.real_quantity,
+            unit: item.real_unit,
+            total_price: item.real_total_price,
+        },
+
+        to_be_weighed: item.to_be_weighed
+    };
+}
 
 /**
- * @returns {Promise<Comanda[]>}
+ * @param {APICommandItem[]} items
+ * @returns {Promise<DBCommandItem[]>}
+ */
+function mapCommandItemsToDB(items) {
+    return items.map(item => ({
+        id: item.id,
+        menu_id: item.menu_info.id,
+        req_unit: item.requested.unit,
+        req_quantity: item.requested.quantity,
+        req_estimated_price: item.requested.estimated_price,
+        real_unit: item.real.unit,
+        real_quantity: item.real.quantity,
+        real_total_price: item.real.total_price,
+        to_be_weighed: item.to_be_weighed
+    }));
+}
+
+/**
+ * @returns {Promise<APICommand[]>}
  */
 async function listComandas() {
-    const resp = await mytenderClient.get(`/comandas`);
-    if (!resp.data.success) {
-        throw new Error(resp.data.message);
+    const { data, error } = await supabase.schema("public").from("view_command_w_items").select("*");
+    if (error) {
+        throw error;
     }
 
-    return resp.data.comandas;
+    return data.map(mapComandaToAPI);
 }
 
 /**
  * @param {string} key
- * @returns {Promise<Comanda>}
+ * @returns {Promise<APICommand>}
  */
 async function getComanda(key) {
-    const resp = await mytenderClient.get(`/comandas?key=${key}`);
-    if (!resp.data.success) {
-        const error = resp.data.error;
-
-        if (error === "not-found") {
-            throw new NotFoundError("Comanda não encontrada");
-        }
-
-        throw new Error(error);
+    const { data, error } = await supabase.schema("public").from("view_command_w_items").select("*").eq("command_key", key);
+    if (error) {
+        throw error;
     }
 
-    return resp.data.comanda;
+    if (data.length === 0) {
+        throw new NotFoundError("Comanda não encontrada");
+    }
+
+    return mapComandaToAPI(data[0]);
 }
 
 /**
- * @param {string} key
- * @param {ComandaItem[]} items
- * @returns {Promise<void>}
+ * @param {APICommandItem[]} items
+ * @returns {Promise<DBCommandItem[]>}
  */
-async function saveWeights(key, items) {
-    const comanda = await getComanda(key);
+async function updateCommandItems(items) {
+    const dbItems = mapCommandItemsToDB(items);
 
-    comanda.items = comanda.items.map(item => {
-        const updatedItem = items.find(i => i.id === item.id);
-        if (updatedItem) {
-            updatedItem.needs_be_weighed = false;
+    const { data, error } = await supabase
+        .schema("public")
+        .from("command_items")
+        .upsert(dbItems)
+        .select();
 
-            return updatedItem;
-        }
-        return item;
-    });
-
-    comanda.status = "open";
-
-    const result = await setComanda(comanda);
-
-    return result;
-}
-
-/**
- * @param {Comanda} comanda
- * @returns {Promise<void>}
- */
-async function setComanda(comanda) {
-    const resp = await mytenderClient.post(`/comandas`, { comanda });
-    if (!resp.data.success) {
-        throw new ValidationError(resp.data.message, { cause: resp.data });
+    if (error) {
+        throw error;
     }
 
-    return resp.data;
+    return data;
 }
 
 export default {
     listComandas,
     getComanda,
-    saveWeights,
-    setComanda
+    updateCommandItems
 }

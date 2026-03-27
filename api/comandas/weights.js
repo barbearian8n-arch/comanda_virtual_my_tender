@@ -4,9 +4,9 @@ import comandas from "../../models/comandas.js";
 const handler = createHandler();
 
 handler.put(async (req, res) => {
-    const { key, items } = req.body;
+    const { items } = req.body;
 
-    await comandas.saveWeights(key, items);
+    await comandas.updateCommandItems(items);
 
     res.status(200).json({ success: true });
 });
