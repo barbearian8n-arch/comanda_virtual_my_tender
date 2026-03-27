@@ -1,5 +1,5 @@
 import mytenderClient from "../infra/mytender.js";
-import { NotFoundError } from "../infra/errors.js";
+import { NotFoundError, ValidationError } from "../infra/errors.js";
 
 /**
  * @typedef {object} Comanda
@@ -26,7 +26,7 @@ import { NotFoundError } from "../infra/errors.js";
  * @property {number} total_price
  * @property {string} base_unit
  * @property {string} formated_item
- 
+ * @property {boolean} needs_be_weighed
 */
 
 /**
@@ -71,19 +71,18 @@ async function saveWeights(key, items) {
     comanda.items = comanda.items.map(item => {
         const updatedItem = items.find(i => i.id === item.id);
         if (updatedItem) {
+            updatedItem.needs_be_weighed = false;
+
             return updatedItem;
         }
         return item;
     });
 
-    console.log(comanda);
-    // const resp = await setComanda(comanda);
+    comanda.status = "open";
 
-    if (!resp.data.success) {
-        throw new Error(resp.data.message);
-    }
+    const result = await setComanda(comanda);
 
-    return resp.data;
+    return result;
 }
 
 /**
@@ -91,9 +90,9 @@ async function saveWeights(key, items) {
  * @returns {Promise<void>}
  */
 async function setComanda(comanda) {
-    const resp = await mytenderClient.post(`/comandas`, comanda);
+    const resp = await mytenderClient.post(`/comandas`, { comanda });
     if (!resp.data.success) {
-        throw new Error(resp.data.message);
+        throw new ValidationError(resp.data.message, { cause: resp.data });
     }
 
     return resp.data;

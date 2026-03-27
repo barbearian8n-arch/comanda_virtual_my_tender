@@ -6,8 +6,7 @@ const handler = createHandler();
 handler.put(async (req, res) => {
     const { key, items } = req.body;
 
-    // await comandas.saveWeights(key, items);
-    console.log(key, items);
+    await comandas.saveWeights(key, items);
 
     res.status(200).json({ success: true });
 });

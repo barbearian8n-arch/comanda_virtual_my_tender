@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react"
 import { useParams } from "react-router-dom"
 import { useRequest } from "../../hooks/useRequest"
-import { getComanda, updateItem, saveWeights } from "../../services/comandas"
+import { getComanda, saveWeights } from "../../services/comandas"
 import { formatPrice, formatPhone } from "../../utils/formatters"
 import { HandleResponse } from "../../components/HandleResponse"
 
@@ -9,6 +9,7 @@ export default function PageBalanca() {
     const { key } = useParams()
     const comandaResp = useRequest(getComanda, [key])
     const [weightItems, setWeightItems] = useState([])
+    const [changedItems, setChangedItems] = useState({})
 
     useEffect(() => {
         if (comandaResp.data != null) {
@@ -18,15 +19,28 @@ export default function PageBalanca() {
 
     const handleItemChange = (id, item) => {
         setWeightItems(prev => prev.map(i => i.id === id ? { ...i, ...item } : i))
+        setChangedItems(prev => ({ ...prev, [id]: true }))
     }
 
     const handleSaveWeightedItems = async () => {
         try {
+            if (!isAllItemsChanged() && !notifyNotAllItemsChanged()) {
+                return
+            }
+
             await saveWeights(key, weightItems)
             comandaResp.refetch()
         } catch (error) {
             console.error("Erro ao salvar pesagens:", error)
         }
+    }
+
+    const isAllItemsChanged = () => {
+        return Object.keys(changedItems).length === weightItems.length
+    }
+
+    const notifyNotAllItemsChanged = () => {
+        return confirm("Nem todos os itens foram pesados. Deseja continuar?")
     }
 
     return (
@@ -75,9 +89,6 @@ function Items({ items, onWeightItemsChange }) {
 function EditableItem({ item: initialItem, onWeightItemsChange }) {
     const [item, setItem] = useState(initialItem)
     const [changed, setChanged] = useState(false)
-    const [success, setSuccess] = useState(false)
-
-    console.log(item)
 
     useEffect(() => {
         if (changed) {
@@ -107,8 +118,20 @@ function EditableItem({ item: initialItem, onWeightItemsChange }) {
         setChanged(true)
     }
 
+    function defineBorderColor() {
+        if (changed) {
+            return "#293ad6ff"
+        }
+
+        if (item.needs_be_weighed) {
+            return "#6c757d"
+        }
+
+        return "#10b981"
+    }
+
     return (
-        <div className="item-card d-flex flex-column" style={{ borderLeft: success ? '4px solid #10b981' : 'none' }}>
+        <div className="item-card d-flex flex-column" style={{ borderLeft: `4px solid ${defineBorderColor()}` }}>
             <div className="d-flex justify-content-between align-items-start mb-3">
                 <span className="item-name fs-5">{item.name.split(" - ")[0]}</span>
                 <div className="d-flex flex-column align-items-end gap-2">
