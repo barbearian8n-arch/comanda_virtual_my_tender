@@ -24,3 +24,29 @@ export function calculateRealTotalPrice(item) {
         return 0;
     }
 }
+
+/**
+ * Calcula o subtotal das comandas somando os preços totais de cada item.
+ * @param {Array} items Lista de itens da comanda
+ * @returns {number} Subtotal calculado
+ */
+export function calculateSubtotal(items) {
+    if (!items || !Array.isArray(items)) return 0;
+    return items.reduce((acc, item) => {
+        const price = item.real?.total_price || item.requested?.estimated_price || item.total_price || 0;
+        return acc + price;
+    }, 0);
+}
+
+/**
+ * Calcula os totais da comanda (subtotal, taxa de entrega, total final).
+ * @param {Array} items Lista de itens
+ * @param {number|null} deliveryFee Taxa de entrega (pode ser null)
+ * @returns {Object} Objeto com subtotal, taxaEntrega e total
+ */
+export function calculateComandaTotals(items, deliveryFee) {
+    const subtotal = calculateSubtotal(items);
+    const taxaEntrega = deliveryFee || 0;
+    const total = subtotal + taxaEntrega;
+    return { subtotal, taxaEntrega, total };
+}

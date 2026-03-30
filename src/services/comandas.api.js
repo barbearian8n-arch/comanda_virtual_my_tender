@@ -45,6 +45,14 @@ export class ComandasAPI {
         return response.data
     }
 
+    async updateDeliveryFee(key, value) {
+        const response = await this.axios.post(`/comandas/delivery-fee`, { key, value })
+        if (response.status !== 200) {
+            throw new Error("Erro ao atualizar taxa de entrega")
+        }
+        return response.data
+    }
+
     async saveWeights(key, items) {
         const response = await this.axios.post(`/comandas/weights`, { key, items })
         if (response.status !== 200) {

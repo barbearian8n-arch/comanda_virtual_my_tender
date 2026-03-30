@@ -33,3 +33,8 @@ export function formatPrice(price) {
         currency: "BRL"
     }).format(price)
 }
+
+export function formatName(name) {
+    if (!name) return ""
+    return name.split(" - ")[0]
+}

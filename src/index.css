@@ -262,6 +262,49 @@ body {
   color: var(--text-main);
 }
 
+.footer-detail-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 0.15rem;
+}
+
+.footer-detail-label {
+  font-size: 0.85rem;
+  color: var(--text-muted);
+  font-weight: 500;
+}
+
+.footer-detail-value {
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.footer-detail-value.not-defined {
+  color: var(--primary-color);
+  font-weight: 700;
+}
+
+.editable-input {
+  height: 20px;
+  padding: 0 4px;
+  font-size: 0.85rem;
+  font-weight: 500;
+  width: 60px;
+  display: inline-block;
+  margin: 0;
+  border: none;
+  border-bottom: 1px solid var(--border-color);
+  border-radius: 0;
+  background: transparent;
+  outline: none;
+}
+
+.editable-input:focus {
+  border-bottom-color: var(--primary-color);
+}
+
 /* ===== Status Badges ===== */
 .status-badge {
   padding: 0.4rem 0.8rem;

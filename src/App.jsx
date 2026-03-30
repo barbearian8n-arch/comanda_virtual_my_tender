@@ -4,6 +4,7 @@ import PageBalanca from './pages/Comanda/Balanca'
 import PageHome from './pages/Home'
 import PageBalancaGeral from './pages/BalancaGeral'
 import { useNavigate } from 'react-router-dom'
+import { Toaster } from 'react-hot-toast'
 
 function App() {
   const navigate = useNavigate()
@@ -34,6 +35,8 @@ function App() {
           <Route path="/comandas/:key/balanca" element={<PageBalanca />} />
         </Routes>
       </main>
+
+      <Toaster />
     </div>
   )
 }

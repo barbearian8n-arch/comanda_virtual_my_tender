@@ -6,6 +6,8 @@ interface APICommand {
     redis_key: string;
     status: string;
     client_endereco: string;
+    client_valor_entrega: number | null;
+    delivery_fee: number | null;
     contact: APICommandContact;
     items: APICommandItem[];
     formated_items?: string;
@@ -80,6 +82,7 @@ interface DBCommand {
     client_id: number;
     key: string;
     status: string;
+    delivery_fee: number | null;
     items: DBCommandItem[];
 }
 
@@ -93,6 +96,7 @@ interface DBViewCommandJoin {
     client_valor_entrega: number;
     command_status: string;
     delivery_address: string;
+    delivery_fee: number | null;
     payment_method: string;
     wa_recipient: string;
     command_created_at: string;

@@ -12,6 +12,9 @@ function mapComandaToAPI(comanda) {
         redis_key: `comanda/${comanda.command_key}`,
         status: comanda.command_status,
         client_endereco: comanda.client_endereco,
+        client_valor_entrega: comanda.client_valor_entrega,
+        delivery_address: comanda.delivery_address,
+        delivery_fee: comanda.delivery_fee,
         contact: {
             lead_id: comanda.client_id,
             name: comanda.client_name,
@@ -137,9 +140,22 @@ async function updateCommandItems(items) {
     return data;
 }
 
+async function updateDeliveryFee(key, value) {
+    console.log(value);
+
+    const { data, error } = await supabase.schema("public").from("command").update({ delivery_fee: value }).eq("key", key);
+    console.log(data);
+    if (error) {
+        throw error;
+    }
+
+    return data;
+}
+
 export default {
     listComandas,
     getComanda,
     updateCommandItems,
-    updateCommandStatusToOpen
+    updateCommandStatusToOpen,
+    updateDeliveryFee
 }
