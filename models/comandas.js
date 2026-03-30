@@ -107,6 +107,15 @@ async function getComanda(key) {
     return mapComandaToAPI(data[0]);
 }
 
+async function updateCommandStatusToOpen(key) {
+    const { data, error } = await supabase.schema("public").from("command").update({ status: "open" }).eq("key", key);
+    if (error) {
+        throw error;
+    }
+
+    return data;
+}
+
 /**
  * @param {APICommandItem[]} items
  * @returns {Promise<DBCommandItem[]>}
@@ -130,5 +139,6 @@ async function updateCommandItems(items) {
 export default {
     listComandas,
     getComanda,
-    updateCommandItems
+    updateCommandItems,
+    updateCommandStatusToOpen
 }

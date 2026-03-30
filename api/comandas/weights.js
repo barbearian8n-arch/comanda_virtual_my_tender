@@ -9,6 +9,8 @@ handler.post(async (req, res) => {
 
     await comandas.updateCommandItems(items)
 
+    await comandas.updateCommandStatusToOpen(key);
+
     await chat.notifyWeighingFinished(key);
 
     res.status(200).json({ success: true });
