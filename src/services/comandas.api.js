@@ -46,7 +46,7 @@ export class ComandasAPI {
     }
 
     async saveWeights(key, items) {
-        const response = await this.axios.put(`/comandas/weights`, { key, items })
+        const response = await this.axios.post(`/comandas/weights`, { key, items })
         if (response.status !== 200) {
             throw new Error("Erro ao salvar pesagens")
         }
