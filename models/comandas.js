@@ -11,6 +11,7 @@ function mapComandaToAPI(comanda) {
         key: comanda.command_key,
         redis_key: `comanda/${comanda.command_key}`,
         status: comanda.command_status,
+        client_endereco: comanda.client_endereco,
         contact: {
             lead_id: comanda.client_id,
             name: comanda.client_name,

@@ -5,6 +5,7 @@ interface APICommand {
     key: string;
     redis_key: string;
     status: string;
+    client_endereco: string;
     contact: APICommandContact;
     items: APICommandItem[];
     formated_items?: string;
