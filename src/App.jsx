@@ -1,20 +1,39 @@
-import { Routes, Route, Link } from 'react-router-dom'
+import { Routes, Route } from 'react-router-dom'
 import PageComanda from './pages/Comanda'
 import PageBalanca from './pages/Comanda/Balanca'
 import PageHome from './pages/Home'
 import PageBalancaGeral from './pages/BalancaGeral'
 import { useNavigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
+import { useEffect, useMemo, useState } from 'react'
 
 function App() {
   const navigate = useNavigate()
-  const isFirstPage = window.location.pathname === "/" || window.location.pathname === "/balanca"
+  const pageStack = useMemo(() => {
+    if (window.location.pathname !== "/") {
+      return ["/", window.location.pathname]
+    }
+
+    return ["/"]
+  }, [])
+
+  const [isFirstPage, setIsFirstPage] = useState(pageStack.length === 1)
+
+  useEffect(() => {
+    if (window.location.pathname !== pageStack[pageStack.length - 1]) {
+      pageStack.push(window.location.pathname)
+    }
+
+    setIsFirstPage(pageStack.length === 1)
+  }, [window.location.pathname])
 
   function historyBack() {
     if (isFirstPage) {
       return
     }
-    navigate(-1)
+
+    pageStack.pop()
+    navigate(pageStack.at(-1))
   }
 
   return (
@@ -23,7 +42,7 @@ function App() {
         <button onClick={historyBack} className={`text-decoration-none back-btn ${isFirstPage ? 'invisible' : ''}`}>
           <i className="bi bi-chevron-left"></i>
         </button>
-        <h1>Comanda Virtual</h1>
+        <h1>MyTender</h1>
         <div style={{ width: '40px' }}></div>
       </header>
 

@@ -1,11 +1,11 @@
 import mytenderClient from "../infra/mytender.js";
 
 async function notifyWeighingFinished(key) {
-    await mytenderClient.post("/pesagem-feita", { key });
+    await mytenderClient.post("/notify-agent", { key, event: "weighing_finished" });
 }
 
 async function notifyDeliveryFeeUpdated(key) {
-    await mytenderClient.post("/taxa-entrega-atualizada", { key });
+    await mytenderClient.post("/notify-agent", { key, event: "delivery_fee_updated" });
 }
 
 export default {

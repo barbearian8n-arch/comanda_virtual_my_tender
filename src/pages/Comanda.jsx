@@ -63,7 +63,7 @@ export default function PageComanda() {
                                                     {data.delivery_fee === null ? (
                                                         <span className="footer-detail-value not-defined">não definido</span>
                                                     ) : (
-                                                        <span className="footer-detail-value">{formatPrice(taxaEntrega)}</span>
+                                                        <span className="footer-detail-value">{taxaEntrega > 0 ? formatPrice(taxaEntrega) : "Grátis"}</span>
                                                     )}
                                                 </Editable>
                                             </div>
@@ -78,9 +78,6 @@ export default function PageComanda() {
                                 })()}
                             </div>
                             <div className="d-flex flex-row gap-2 mt-3 mt-md-0">
-                                <button className="btn btn-dark rounded-pill px-4 fw-bold">
-                                    Fechar Conta
-                                </button>
                                 <Link to={`/comandas/${data.key}/balanca`} className="btn btn-dark rounded-pill px-4 fw-bold">
                                     Balança
                                 </Link>

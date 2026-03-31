@@ -141,10 +141,8 @@ async function updateCommandItems(items) {
 }
 
 async function updateDeliveryFee(key, value) {
-    console.log(value);
-
     const { data, error } = await supabase.schema("public").from("command").update({ delivery_fee: value }).eq("key", key);
-    console.log(data);
+
     if (error) {
         throw error;
     }
