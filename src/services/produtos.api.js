@@ -11,8 +11,15 @@ export class ProdutosAPI {
         })
     }
 
-    async getProdutos(page = 0, limit = 10) {
-        const response = await this.axios.get(`/produtos?page=${page}&limit=${limit}`)
+    async getProdutos(page = 0, limit = 10, filters = {}) {
+        let url = `/produtos?page=${page}&limit=${limit}`;
+        if (filters.nome) {
+            url += `&f_nome=${encodeURIComponent(filters.nome)}`;
+        }
+        if (filters.categoria) {
+            url += `&f_categoria=${encodeURIComponent(filters.categoria)}`;
+        }
+        const response = await this.axios.get(url)
         if (response.status !== 200) {
             throw new Error("Erro ao buscar produtos")
         }

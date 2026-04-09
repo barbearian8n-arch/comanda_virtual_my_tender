@@ -22,11 +22,26 @@ export default function PageProdutoView() {
                             </div>
                             <div className="custom-card card-comanda-container">
                                 <div>
+                                    <div className="mb-3 d-flex gap-2">
+                                        {produto.categoria && (
+                                            <span className="badge bg-secondary">{produto.categoria}</span>
+                                        )}
+                                        {produto.is_disponivel ? (
+                                            <span className="badge bg-success">Ativo</span>
+                                        ) : (
+                                            <span className="badge bg-danger">Indisponível</span>
+                                        )}
+                                    </div>
                                     <p className="card-meta mb-2">
-                                        <strong>Descrição: </strong><br/>
-                                        {produto.descricao || 'Nenhuma descrição fornecida.'}
+                                        <strong>Unidade: </strong> {produto.unidade || 'N/A'}
                                     </p>
-                                    <p className="card-meta">
+                                    {produto.descricao && (
+                                        <p className="card-meta mb-2">
+                                            <strong>Descrição: </strong><br/>
+                                            {produto.descricao}
+                                        </p>
+                                    )}
+                                    <p className="card-meta mt-3">
                                         <strong>Preço: </strong><br/>
                                         <span className="fs-5 text-success fw-bold">
                                             {formatPrice(produto.preco)}

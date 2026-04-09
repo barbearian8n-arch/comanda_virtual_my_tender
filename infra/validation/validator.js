@@ -86,6 +86,7 @@ class ObjectValidator extends Validator {
 
     validate(value, path = ["object"]) {
         const errors = [];
+        const out = {};
 
         if (typeof value !== "object" || value === null) {
             return r.err("Value must be an object", path);
@@ -107,13 +108,15 @@ class ObjectValidator extends Validator {
             if (!result.isValid) {
                 errors.push(...result.errors);
             }
+
+            out[key] = result.value;
         }
 
         if (errors.length > 0) {
             return r.errs(errors);
         }
 
-        return r.ok(value);
+        return r.ok(out);
     }
 }
 
@@ -186,6 +189,7 @@ class ArrayValidator extends Validator {
 
     validate(value, path = []) {
         const errors = [];
+        const out = [];
 
         if (!Array.isArray(value)) {
             return r.err("Invalid value for array", path);
@@ -197,13 +201,15 @@ class ArrayValidator extends Validator {
             if (!result.isValid) {
                 errors.push(...result.errors);
             }
+
+            out.push(result.value);
         }
 
         if (errors.length > 0) {
             return r.errs(errors);
         }
 
-        return r.ok(value);
+        return r.ok(out);
     }
 }
 
