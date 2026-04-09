@@ -17,9 +17,14 @@ export default function PageHome() {
                         <h4>Comandas Abertas</h4>
                         <p className="subtitle">Lista de comandas abertas</p>
                     </div>
-                    <Link to="/balanca" className="btn btn-warning fw-bold text-dark">
-                        <i className="bi bi-speedometer2 me-2"></i> Balança
-                    </Link>
+                    <div className="d-flex gap-2">
+                        <Link to="/produtos" className="btn btn-primary fw-bold">
+                            <i className="bi bi-box me-2"></i> Produtos
+                        </Link>
+                        <Link to="/balanca" className="btn btn-warning fw-bold text-dark">
+                            <i className="bi bi-speedometer2 me-2"></i> Balança
+                        </Link>
+                    </div>
                 </div>
                 <HandleResponse response={response}>
                     {(comandas) => (

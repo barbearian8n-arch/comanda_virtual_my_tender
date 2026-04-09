@@ -36,7 +36,12 @@ export default function PageComanda() {
                                     <h4>Comanda <span className="fw-normal text-muted">#{data.id}</span></h4>
                                     <p className="subtitle">Cliente: {formatName(data.contact.name)}</p>
                                     <p className="subtitle">Telefone: {formatPhone(data.contact.number_normalized)}</p>
-                                    <p className="subtitle">Endereço da Entrega: {data.client_endereco}</p>
+                                    <p className="subtitle">
+                                        Endereço da Entrega: {data.client_endereco}
+                                        <Link to={`/comandas/${data.key}/delivery-fee`} className="btn btn-link p-0">
+                                            <i className="bi bi-pencil text-muted"></i>
+                                        </Link>
+                                    </p>
                                 </div>
                                 <span className={`status-badge ${statusMap[data.status].class}`}>
                                     {statusMap[data.status].label}

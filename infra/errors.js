@@ -6,6 +6,14 @@ export class ApiError extends Error {
         this.statusCode = statusCode;
         this.cause = cause;
     }
+
+    toJSON() {
+        return {
+            success: false,
+            message: this.message,
+            error: this.code
+        };
+    }
 }
 
 export class NotFoundError extends ApiError {
@@ -27,6 +35,14 @@ export class ValidationError extends ApiError {
             statusCode: 400,
             cause
         });
+    }
+
+    toJSON() {
+        return {
+            success: false,
+            message: this.message,
+            error: this.code
+        };
     }
 }
 

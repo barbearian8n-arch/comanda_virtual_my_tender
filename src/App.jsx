@@ -3,9 +3,12 @@ import PageComanda from './pages/Comanda'
 import PageBalanca from './pages/Comanda/Balanca'
 import PageHome from './pages/Home'
 import PageBalancaGeral from './pages/BalancaGeral'
+import PageProdutos from './pages/Produtos'
+import PageProdutoView from './pages/ProdutoView'
 import { useNavigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useEffect, useMemo, useState } from 'react'
+import PageDeliveryFee from './pages/Comanda/DeliveryFee'
 
 function App() {
   const navigate = useNavigate()
@@ -50,8 +53,11 @@ function App() {
         <Routes>
           <Route path="/" element={<PageHome />} />
           <Route path="/balanca" element={<PageBalancaGeral />} />
+          <Route path="/produtos" element={<PageProdutos />} />
+          <Route path="/produtos/:id" element={<PageProdutoView />} />
           <Route path="/comandas/:key" element={<PageComanda />} />
           <Route path="/comandas/:key/balanca" element={<PageBalanca />} />
+          <Route path="/comandas/:key/delivery-fee" element={<PageDeliveryFee />} />
         </Routes>
       </main>
 

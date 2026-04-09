@@ -12,6 +12,13 @@
 import { ApiError, MethodNotAllowedError } from "./errors.js";
 
 function createHandler() {
+    const middlewares = {
+        all: [],
+        get: [],
+        post: [],
+        put: [],
+        delete: []
+    };
     const methods = {}
 
     const handler = async (req, res) => {
@@ -23,17 +30,16 @@ function createHandler() {
             }
 
             if (methods[method]) {
+                await runMiddlewares(middlewares.all, req, res);
+                await runMiddlewares(middlewares[method], req, res);
+
                 await methods[method](req, res);
             } else {
                 throw new MethodNotAllowedError("Method Not Allowed");
             }
         } catch (error) {
             if (error instanceof ApiError) {
-                res.status(error.statusCode).json({
-                    success: false,
-                    message: error.message,
-                    error: error.code
-                });
+                res.status(error.statusCode).json(error.toJSON());
 
                 return;
             }
@@ -46,6 +52,34 @@ function createHandler() {
             });
         }
     };
+
+    async function runMiddlewares(handlers, req, res) {
+        for (const handler of handlers) {
+            if (typeof handler === "function") {
+                await handler(req, res);
+            } else {
+                await handler.handle(req, res);
+            }
+        }
+    }
+
+    handler.middleware = {
+        all: (...handlers) => {
+            middlewares.all.push(...handlers);
+        },
+        get: (...handlers) => {
+            middlewares.get.push(...handlers);
+        },
+        post: (...handlers) => {
+            middlewares.post.push(...handlers);
+        },
+        put: (...handlers) => {
+            middlewares.put.push(...handlers);
+        },
+        delete: (...handlers) => {
+            middlewares.delete.push(...handlers);
+        }
+    }
 
     handler.get = (fn) => {
         methods.get = fn;
