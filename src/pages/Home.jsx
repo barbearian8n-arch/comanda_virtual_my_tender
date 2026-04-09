@@ -17,7 +17,10 @@ export default function PageHome() {
                         <h4>Comandas Abertas</h4>
                         <p className="subtitle">Lista de comandas abertas</p>
                     </div>
-                    <div className="d-flex gap-2">
+                    <div className="d-flex gap-2 flex-wrap justify-content-end">
+                        <Link to="/cardapio" className="btn btn-danger fw-bold">
+                            <i className="bi bi-journal-text me-2"></i> Cardápio
+                        </Link>
                         <Link to="/produtos" className="btn btn-primary fw-bold">
                             <i className="bi bi-box me-2"></i> Produtos
                         </Link>

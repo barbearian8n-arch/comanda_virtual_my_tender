@@ -1,15 +1,17 @@
 import supabase from "../infra/supabase.js";
 
 async function listProdutos(page = 0, limit = 10, filters = {}) {
-    const start = page * limit;
-    const end = start + limit - 1;
-
     let query = supabase.from("cardapio").select("*");
 
     query = applyFilters(query, filters);
 
+    if (limit !== -1) {
+        const start = page * limit;
+        const end = start + limit - 1;
+        query = query.range(start, end);
+    }
+
     const { data, error } = await query
-        .range(start, end)
         .order("nome", { ascending: true });
 
     if (error) {
