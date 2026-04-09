@@ -2,15 +2,18 @@ import { useState } from "react"
 import { Link, useParams, useSearchParams } from "react-router-dom"
 import { HandleResponse } from "../components/HandleResponse"
 import { useRequest } from "../hooks/useRequest"
-import { getProdutos } from "../services/produtos"
+import { getProdutos, getCategorias } from "../services/produtos"
 import { formatPrice } from "../utils/formatters"
 
 export default function PageProdutos() {
     const [searchParams, setSearchParams] = useSearchParams()
     const page = searchParams.get("page") || 0
     const nome = searchParams.get("nome") || ""
+    const categoria = searchParams.get("categoria") || ""
     const limit = 10
-    const response = useRequest(getProdutos, [page, limit, { nome }], [page, nome])
+    
+    const response = useRequest(getProdutos, [page, limit, { nome, categoria }], [page, nome, categoria])
+    const categoriasResponse = useRequest(getCategorias, [], [])
 
     function handlePageChange(newPage) {
         setSearchParams(prev => {
@@ -23,6 +26,7 @@ export default function PageProdutos() {
         e.preventDefault()
         const formData = new FormData(e.target)
         const novoNome = formData.get("nome")
+        const novaCategoria = formData.get("categoria")
 
         setSearchParams(prev => {
             if (novoNome) {
@@ -30,6 +34,13 @@ export default function PageProdutos() {
             } else {
                 prev.delete("nome")
             }
+
+            if (novaCategoria) {
+                prev.set("categoria", novaCategoria)
+            } else {
+                prev.delete("categoria")
+            }
+
             prev.set("page", 0)
             return prev
         })
@@ -47,6 +58,17 @@ export default function PageProdutos() {
 
                 <div className="mb-4">
                     <form onSubmit={handleFilterSubmit} className="d-flex gap-2">
+                        <select
+                            name="categoria"
+                            className="form-select"
+                            style={{ maxWidth: '200px' }}
+                            defaultValue={categoria}
+                        >
+                            <option value="">Todas Categorias</option>
+                            {categoriasResponse.data && categoriasResponse.data.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                        </select>
                         <input
                             type="text"
                             name="nome"

@@ -45,7 +45,35 @@ async function getProduto(id) {
     return data
 }
 
+async function getCategorias() {
+    const { data, error } = await supabase
+        .from("cardapio")
+        .select("categoria");
+
+    if (error) {
+        throw error;
+    }
+
+    const categorias = [...new Set(data.map(item => item.categoria).filter(Boolean))];
+    return categorias.sort();
+}
+
+async function updateProduto(id, updates) {
+    const { data, error } = await supabase
+        .from("cardapio")
+        .update(updates)
+        .eq("id", id)
+        .select()
+        .single();
+    if (error) {
+        throw error;
+    }
+    return data;
+}
+
 export default {
     listProdutos,
-    getProduto
+    getProduto,
+    getCategorias,
+    updateProduto
 }

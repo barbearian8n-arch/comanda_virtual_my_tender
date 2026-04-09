@@ -40,4 +40,17 @@ handler.get(async (req, res) => {
     res.status(200).json(produto);
 });
 
+handler.put(async (req, res) => {
+    const { id } = req.query;
+    if (id == null) {
+        res.status(400).json({ error: "Missing id" });
+        return;
+    }
+
+    const updates = req.body;
+    const produto = await produtos.updateProduto(id, updates);
+
+    res.status(200).json(produto);
+});
+
 export default handler;

@@ -33,4 +33,20 @@ export class ProdutosAPI {
         }
         return response.data
     }
+
+    async getCategorias() {
+        const response = await this.axios.get(`/categorias`)
+        if (response.status !== 200) {
+            throw new Error("Erro ao buscar categorias")
+        }
+        return response.data
+    }
+
+    async updateProduto(id, data) {
+        const response = await this.axios.put(`/produtos?id=${id}`, data)
+        if (response.status !== 200) {
+            throw new Error("Erro ao atualizar produto")
+        }
+        return response.data
+    }
 }
