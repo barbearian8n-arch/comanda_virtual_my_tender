@@ -29,6 +29,10 @@ async function listProdutos(page = 0, limit = 10, filters = {}) {
             query = query.ilike("nome", `%${filters.nome}%`);
         }
 
+        if (filters.is_disponivel !== undefined && filters.is_disponivel !== "") {
+            query = query.eq("is_disponivel", filters.is_disponivel === "true" || filters.is_disponivel === true);
+        }
+
         return query;
     }
 }

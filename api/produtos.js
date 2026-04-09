@@ -12,12 +12,13 @@ handler.middleware.get(
             limit: v.number({ cast: true }).optional(),
             f_nome: v.string().optional(),
             f_categoria: v.string().optional(),
+            f_disponivel: v.string().optional(),
         })
     )
 );
 
 handler.get(async (req, res) => {
-    const { id, page = 0, limit = 10, f_nome, f_categoria } = req.query;
+    const { id, page = 0, limit = 10, f_nome, f_categoria, f_disponivel } = req.query;
 
     if (id == null) {
         const filters = {};
@@ -28,6 +29,10 @@ handler.get(async (req, res) => {
 
         if (f_categoria) {
             filters.categoria = f_categoria;
+        }
+
+        if (f_disponivel) {
+            filters.is_disponivel = f_disponivel;
         }
 
         const produtosList = await produtos.listProdutos(page, limit, filters);

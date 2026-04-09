@@ -110,13 +110,15 @@ export default function PageProdutoView() {
 
                                         <div>
                                             <label className="form-label fw-semibold">Unidade</label>
-                                            <input 
-                                                type="text" 
-                                                className="form-control" 
-                                                placeholder="ex: kg, uni, g"
+                                            <select
+                                                className="form-select" 
                                                 value={formData.unidade}
                                                 onChange={e => setFormData({...formData, unidade: e.target.value})}
-                                            />
+                                            >
+                                                <option value="" disabled>Selecione uma unidade</option>
+                                                <option value="kg">kg (Quilograma)</option>
+                                                <option value="uni">uni (Unidade)</option>
+                                            </select>
                                         </div>
 
                                         <div>

@@ -19,6 +19,9 @@ export class ProdutosAPI {
         if (filters.categoria) {
             url += `&f_categoria=${encodeURIComponent(filters.categoria)}`;
         }
+        if (filters.is_disponivel !== undefined && filters.is_disponivel !== "") {
+            url += `&f_disponivel=${encodeURIComponent(filters.is_disponivel)}`;
+        }
         const response = await this.axios.get(url)
         if (response.status !== 200) {
             throw new Error("Erro ao buscar produtos")

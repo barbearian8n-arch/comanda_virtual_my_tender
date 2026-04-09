@@ -10,9 +10,10 @@ export default function PageProdutos() {
     const page = searchParams.get("page") || 0
     const nome = searchParams.get("nome") || ""
     const categoria = searchParams.get("categoria") || ""
+    const is_disponivel = searchParams.get("is_disponivel") || ""
     const limit = 10
     
-    const response = useRequest(getProdutos, [page, limit, { nome, categoria }], [page, nome, categoria])
+    const response = useRequest(getProdutos, [page, limit, { nome, categoria, is_disponivel }], [page, nome, categoria, is_disponivel])
     const categoriasResponse = useRequest(getCategorias, [], [])
 
     function handlePageChange(newPage) {
@@ -27,6 +28,7 @@ export default function PageProdutos() {
         const formData = new FormData(e.target)
         const novoNome = formData.get("nome")
         const novaCategoria = formData.get("categoria")
+        const novoDisponivel = formData.get("is_disponivel")
 
         setSearchParams(prev => {
             if (novoNome) {
@@ -39,6 +41,12 @@ export default function PageProdutos() {
                 prev.set("categoria", novaCategoria)
             } else {
                 prev.delete("categoria")
+            }
+
+            if (novoDisponivel !== "") {
+                prev.set("is_disponivel", novoDisponivel)
+            } else {
+                prev.delete("is_disponivel")
             }
 
             prev.set("page", 0)
@@ -68,6 +76,16 @@ export default function PageProdutos() {
                             {categoriasResponse.data && categoriasResponse.data.map(cat => (
                                 <option key={cat} value={cat}>{cat}</option>
                             ))}
+                        </select>
+                        <select
+                            name="is_disponivel"
+                            className="form-select"
+                            style={{ maxWidth: '150px' }}
+                            defaultValue={is_disponivel}
+                        >
+                            <option value="">Status: Todos</option>
+                            <option value="true">Ativos</option>
+                            <option value="false">Inativos</option>
                         </select>
                         <input
                             type="text"
