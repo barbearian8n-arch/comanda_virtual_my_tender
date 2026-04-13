@@ -14,8 +14,6 @@ export function useRequest(asyncFn, args = [], dependencies = []) {
             .finally(() => setLoading(false))
     }
 
-    console.log(dependencies);
-
     useEffect(() => {
         console.log('fetched', asyncFn.name)
         fetchData()

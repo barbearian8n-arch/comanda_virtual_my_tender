@@ -1,3 +1,4 @@
+import mytenderClient from "../infra/mytender.js";
 import supabase from "../infra/supabase.js";
 
 async function listProdutos(page = 0, limit = 10, filters = {}) {
@@ -77,9 +78,35 @@ async function updateProduto(id, updates) {
     return data;
 }
 
+async function updateEmbedding(id) {
+    const { data, error } = await mytenderClient.post(`/menu/embedding`, { id })
+
+    if (error) {
+        throw error;
+    }
+
+    return data;
+}
+
+async function createProduto(produtoData) {
+    const { data, error } = await supabase
+        .from("cardapio")
+        .insert(produtoData)
+        .select()
+        .single();
+
+    if (error) {
+        throw error;
+    }
+
+    return data;
+}
+
 export default {
     listProdutos,
     getProduto,
     getCategorias,
-    updateProduto
+    updateProduto,
+    updateEmbedding,
+    createProduto
 }

@@ -17,7 +17,17 @@ export function Items({ items, onWeightItemsChange }) {
 }
 
 export function EditableItem({ item: initialItem, onWeightItemsChange }) {
-    const [item, setItem] = useState(initialItem)
+    const [item, setItem] = useState(() => {
+        return {
+            ...initialItem,
+            real: {
+                ...initialItem.real,
+                quantity: 0,
+                unit: "g",
+                total_price: 0
+            }
+        }
+    })
     const [changed, setChanged] = useState(false)
 
     useEffect(() => {
