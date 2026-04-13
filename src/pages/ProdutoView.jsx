@@ -2,7 +2,7 @@ import { useState, useEffect } from "react"
 import { useParams, useNavigate } from "react-router-dom"
 import { useRequest } from "../hooks/useRequest"
 import { HandleResponse } from "../components/HandleResponse"
-import { getProduto, updateProduto } from "../services/produtos"
+import { getProduto, updateProduto, deleteProduto } from "../services/produtos"
 import { formatPrice } from "../utils/formatters"
 import toast from "react-hot-toast"
 
@@ -13,16 +13,21 @@ export default function PageProdutoView() {
     
     const [isEditing, setIsEditing] = useState(false)
     const [formData, setFormData] = useState({
+        nome: '',
+        categoria: '',
         preco: 0,
         unidade: '',
         g_por_uni: '',
         is_disponivel: true
     })
     const [isSaving, setIsSaving] = useState(false)
+    const [isDeleting, setIsDeleting] = useState(false)
 
     useEffect(() => {
         if (response.data) {
             setFormData({
+                nome: response.data.nome || '',
+                categoria: response.data.categoria || '',
                 preco: response.data.preco || 0,
                 unidade: response.data.unidade || '',
                 g_por_uni: response.data.g_por_uni || '',
@@ -33,7 +38,7 @@ export default function PageProdutoView() {
 
     const precoPorUniCalc = () => {
         if (formData.unidade === 'kg' && formData.g_por_uni) {
-            return Number(formData.g_por_uni) * Number(formData.preco);
+            return (Number(formData.g_por_uni) * Number(formData.preco)) / 1000;
         }
         return null;
     }
@@ -43,6 +48,8 @@ export default function PageProdutoView() {
             setIsSaving(true)
             const preco_por_uni = precoPorUniCalc()
             const payload = {
+                nome: formData.nome,
+                categoria: formData.categoria,
                 preco: Number(formData.preco),
                 unidade: formData.unidade,
                 g_por_uni: formData.g_por_uni ? Number(formData.g_por_uni) : null,
@@ -61,6 +68,21 @@ export default function PageProdutoView() {
         }
     }
 
+    const handleDelete = async () => {
+        if (window.confirm("Atenção: Tem certeza que deseja remover este produto definitivamente?")) {
+            try {
+                setIsDeleting(true)
+                await deleteProduto(id)
+                toast.success("Produto removido com sucesso!")
+                navigate("/produtos", { replace: true })
+            } catch (error) {
+                toast.error("Erro ao remover o produto")
+                console.error(error)
+                setIsDeleting(false)
+            }
+        }
+    }
+
     return (
         <div className="d-flex flex-column h-100">
             <div className="page-content">
@@ -72,13 +94,24 @@ export default function PageProdutoView() {
                                     <h4>{produto.nome}</h4>
                                     <p className="subtitle">Detalhes do produto</p>
                                 </div>
-                                <button 
-                                    className={`btn ${isEditing ? 'btn-outline-secondary' : 'btn-outline-primary'}`}
-                                    onClick={() => setIsEditing(!isEditing)}
-                                    disabled={isSaving}
-                                >
-                                    {isEditing ? 'Cancelar' : 'Editar'}
-                                </button>
+                                <div className="d-flex gap-2">
+                                    {!isEditing && (
+                                        <button 
+                                            className="btn btn-outline-danger"
+                                            onClick={handleDelete}
+                                            disabled={isDeleting || isSaving}
+                                        >
+                                            <i className="bi bi-trash"></i> Excluir
+                                        </button>
+                                    )}
+                                    <button 
+                                        className={`btn ${isEditing ? 'btn-outline-secondary' : 'btn-outline-primary'}`}
+                                        onClick={() => setIsEditing(!isEditing)}
+                                        disabled={isSaving || isDeleting}
+                                    >
+                                        {isEditing ? 'Cancelar' : 'Editar'}
+                                    </button>
+                                </div>
                             </div>
                             
                             <div className="custom-card card-comanda-container">
@@ -98,14 +131,41 @@ export default function PageProdutoView() {
                                         </div>
 
                                         <div>
-                                            <label className="form-label fw-semibold">Preço</label>
+                                            <label className="form-label fw-semibold">Nome</label>
                                             <input 
-                                                type="number" 
-                                                step="0.01"
+                                                type="text" 
                                                 className="form-control" 
-                                                value={formData.preco}
-                                                onChange={e => setFormData({...formData, preco: e.target.value})}
+                                                value={formData.nome}
+                                                onChange={e => setFormData({...formData, nome: e.target.value})}
                                             />
+                                        </div>
+
+                                        <div>
+                                            <label className="form-label fw-semibold">Categoria</label>
+                                            <input 
+                                                type="text" 
+                                                className="form-control" 
+                                                value={formData.categoria}
+                                                onChange={e => setFormData({...formData, categoria: e.target.value})}
+                                            />
+                                        </div>
+
+                                        <div>
+                                            <label className="form-label fw-semibold">Preço</label>
+                                            <div className="input-group">
+                                                <span className="input-group-text border-primary bg-primary text-white">R$</span>
+                                                <input 
+                                                    type="text" 
+                                                    inputMode="numeric"
+                                                    className="form-control border-primary" 
+                                                    value={formData.preco !== '' ? Number(formData.preco || 0).toFixed(2).replace('.', ',') : ''}
+                                                    onChange={e => {
+                                                        let onlyDigits = e.target.value.replace(/\D/g, '');
+                                                        let numericValue = (parseInt(onlyDigits, 10) || 0) / 100;
+                                                        setFormData({...formData, preco: numericValue})
+                                                    }}
+                                                />
+                                            </div>
                                         </div>
 
                                         <div>
@@ -133,13 +193,16 @@ export default function PageProdutoView() {
 
                                         <div>
                                             <label className="form-label fw-semibold">Preço por uni. (Cálculo Automático)</label>
-                                            <input 
-                                                type="text" 
-                                                className="form-control" 
-                                                value={precoPorUniCalc() !== null ? formatPrice(precoPorUniCalc()) : ''}
-                                                disabled
-                                                readOnly
-                                            />
+                                            <div className="input-group text-muted">
+                                                <span className="input-group-text border-primary bg-primary text-white" style={{opacity: 0.8}}>R$</span>
+                                                <input 
+                                                    type="text" 
+                                                    className="form-control border-primary bg-light" 
+                                                    value={precoPorUniCalc() !== null ? Number(precoPorUniCalc()).toFixed(2).replace('.', ',') : ''}
+                                                    disabled
+                                                    readOnly
+                                                />
+                                            </div>
                                             <div className="form-text">
                                                 Vazio se unidade for 'uni' ou g_por_uni for nulo.
                                             </div>

@@ -62,6 +62,9 @@ export default function PageProdutos() {
                         <h4>Cardápio</h4>
                         <p className="subtitle mb-0">Lista de produtos</p>
                     </div>
+                    <Link to="/produtos/novo" className="btn btn-primary d-flex align-items-center gap-2">
+                        <i className="bi bi-plus-lg"></i> Adicionar Produto
+                    </Link>
                 </div>
 
                 <div className="mb-4">

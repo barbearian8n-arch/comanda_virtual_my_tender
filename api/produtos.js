@@ -58,26 +58,41 @@ handler.put(async (req, res) => {
     res.status(200).json(produto);
 });
 
-handler.middleware.post(
-    v.middleware.body(
-        v.object({
-            nome: v.string(),
-            categoria: v.string(),
-            preco_por_unidade: v.number(),
-            unidade_medida: v.string(),
-            is_disponivel: v.boolean(),
-        })
-    )
-);
+// handler.middleware.post(
+//     v.middleware.body(
+//         v.object({
+//             nome: v.string(),
+//             categoria: v.string(),
+//             preco: v.number(),
+//             unidade: v.string(),
+//             g_por_uni: v.number().optional(),
+//             preco_por_uni: v.number().optional(),
+//             is_disponivel: v.boolean(),
+//         })
+//     )
+// );
 
 handler.post(async (req, res) => {
     const produtoData = req.body;
 
     const produto = await produtos.createProduto(produtoData);
 
-    await produtos.updateEmbedding(produto.id);
-
     res.status(200).json(produto);
+});
+
+handler.delete(async (req, res) => {
+    const { id } = req.query;
+    if (id == null) {
+        res.status(400).json({ error: "Missing id" });
+        return;
+    }
+
+    try {
+        const produto = await produtos.deleteProduto(id);
+        res.status(200).json(produto);
+    } catch (error) {
+        res.status(500).json({ error: error.message });
+    }
 });
 
 export default handler;

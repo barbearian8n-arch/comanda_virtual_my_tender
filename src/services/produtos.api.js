@@ -52,4 +52,20 @@ export class ProdutosAPI {
         }
         return response.data
     }
+
+    async createProduto(data) {
+        const response = await this.axios.post(`/produtos`, data)
+        if (response.status !== 200) {
+            throw new Error("Erro ao criar produto")
+        }
+        return response.data
+    }
+
+    async deleteProduto(id) {
+        const response = await this.axios.delete(`/produtos?id=${id}`)
+        if (response.status !== 200) {
+            throw new Error("Erro ao deletar produto")
+        }
+        return response.data
+    }
 }

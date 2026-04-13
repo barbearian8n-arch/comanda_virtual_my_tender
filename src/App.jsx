@@ -5,6 +5,7 @@ import PageHome from './pages/Home'
 import PageBalancaGeral from './pages/BalancaGeral'
 import PageProdutos from './pages/Produtos'
 import PageProdutoView from './pages/ProdutoView'
+import PageProdutoNovo from './pages/ProdutoNovo'
 import PageCardapio from './pages/Cardapio'
 import { useNavigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
@@ -56,6 +57,7 @@ function App() {
           <Route path="/balanca" element={<PageBalancaGeral />} />
           <Route path="/cardapio" element={<PageCardapio />} />
           <Route path="/produtos" element={<PageProdutos />} />
+          <Route path="/produtos/novo" element={<PageProdutoNovo />} />
           <Route path="/produtos/:id" element={<PageProdutoView />} />
           <Route path="/comandas/:key" element={<PageComanda />} />
           <Route path="/comandas/:key/balanca" element={<PageBalanca />} />

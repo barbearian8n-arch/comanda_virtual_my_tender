@@ -66,15 +66,24 @@ async function getCategorias() {
 }
 
 async function updateProduto(id, updates) {
+    const produtoAntigo = await getProduto(id);
+
     const { data, error } = await supabase
         .from("cardapio")
         .update(updates)
         .eq("id", id)
         .select()
         .single();
+
     if (error) {
         throw error;
     }
+
+    if (updates.nome !== produtoAntigo.nome || updates.categoria !== produtoAntigo.categoria) {
+        console.log("> Atualizando embedding...");
+        await updateEmbedding(data.id);
+    }
+
     return data;
 }
 
@@ -99,6 +108,33 @@ async function createProduto(produtoData) {
         throw error;
     }
 
+    await updateEmbedding(data.id);
+
+    return data;
+}
+
+async function deleteProduto(id) {
+    const { data, error } = await supabase
+        .from("cardapio")
+        .delete()
+        .eq("id", id)
+        .select()
+        .single();
+
+    if (error) {
+        throw error;
+    }
+
+    const deleteEmbedding = await supabase
+        .from("embedding_cardapio")
+        .delete()
+        .eq("id_cardapio", id)
+        .select();
+
+    if (deleteEmbedding.error) {
+        throw deleteEmbedding.error;
+    }
+
     return data;
 }
 
@@ -108,5 +144,6 @@ export default {
     getCategorias,
     updateProduto,
     updateEmbedding,
-    createProduto
+    createProduto,
+    deleteProduto
 }

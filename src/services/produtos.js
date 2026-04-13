@@ -17,3 +17,11 @@ export async function getCategorias() {
 export async function updateProduto(id, data) {
     return await engine.updateProduto(id, data)
 }
+
+export async function createProduto(data) {
+    return await engine.createProduto(data)
+}
+
+export async function deleteProduto(id) {
+    return await engine.deleteProduto(id)
+}
