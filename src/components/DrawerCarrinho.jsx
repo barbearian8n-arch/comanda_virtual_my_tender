@@ -142,18 +142,43 @@ export default function DrawerCarrinho({ open, onClose, onItemRemoved }) {
                     )}
                 </div>
 
-                {/* Rodapé com total */}
-                {items.length > 0 && (
-                    <div className="px-4 py-3 border-top">
-                        <div className="d-flex justify-content-between align-items-center">
-                            <span className="text-muted fw-semibold">Total estimado</span>
-                            <span className="fw-bold fs-5 text-success">{formatPrice(subtotal)}</span>
+                {/* Rodapé com total e ações */}
+                <div className="px-4 py-3 border-top bg-white">
+                    {items.length > 0 && (
+                        <div className="mb-3">
+                            <div className="d-flex justify-content-between align-items-center">
+                                <span className="text-muted fw-semibold">Total estimado</span>
+                                <span className="fw-bold fs-5 text-success">{formatPrice(subtotal)}</span>
+                            </div>
+                            <p className="text-muted small mb-3 mt-1">
+                                * itens em kg serão calculados após a pesagem
+                            </p>
+                            
+                            <button 
+                                className="btn btn-success w-100 py-3 fw-bold rounded-3" 
+                                onClick={() => {
+                                    toast.success("Pedido fechado com sucesso! Dirija-se ao caixa.")
+                                    document.cookie = "comanda_key=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+                                    window.location.href = "/cardapio"
+                                }}
+                            >
+                                <i className="bi bi-check-circle me-2" />
+                                Fechar Pedido
+                            </button>
                         </div>
-                        <p className="text-muted small mb-0 mt-1">
-                            * itens em kg serão calculados após a pesagem
-                        </p>
-                    </div>
-                )}
+                    )}
+
+                    <button 
+                        className="btn btn-outline-secondary w-100 py-2 fw-semibold rounded-3" 
+                        onClick={() => {
+                            document.cookie = "comanda_key=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+                            window.location.href = "/cardapio"
+                        }}
+                    >
+                        <i className="bi bi-box-arrow-right me-2" />
+                        Sair da Comanda
+                    </button>
+                </div>
             </div>
         </>
     )
