@@ -150,10 +150,66 @@ async function updateDeliveryFee(key, value) {
     return data;
 }
 
+async function getCommandIdByKey(key) {
+    const { data, error } = await supabase
+        .schema("public")
+        .from("command")
+        .select("id")
+        .eq("key", key)
+        .single();
+
+    if (error) throw error;
+    return data.id;
+}
+
+/**
+ * @param {number} commandId
+ * @param {{ menu_id, req_unit, req_quantity, req_estimated_price }} itemData
+ */
+async function addCommandItem(commandId, itemData) {
+    const isWeighed = itemData.req_unit === "kg" || itemData.req_unit === "g";
+
+    const { data, error } = await supabase
+        .schema("public")
+        .from("command_item")
+        .insert({
+            command_id: commandId,
+            menu_id: itemData.menu_id,
+            req_unit: itemData.req_unit,
+            req_quantity: itemData.req_quantity,
+            req_estimated_price: itemData.req_estimated_price,
+            real_unit: itemData.req_unit,
+            real_quantity: isWeighed ? 0 : itemData.req_quantity,
+            real_total_price: isWeighed ? 0 : itemData.req_estimated_price,
+            to_be_weighed: isWeighed,
+        })
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
+async function removeCommandItem(itemId) {
+    const { data, error } = await supabase
+        .schema("public")
+        .from("command_item")
+        .delete()
+        .eq("id", itemId)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
 export default {
     listComandas,
     getComanda,
     updateCommandItems,
     updateCommandStatusToOpen,
-    updateDeliveryFee
+    updateDeliveryFee,
+    getCommandIdByKey,
+    addCommandItem,
+    removeCommandItem
 }

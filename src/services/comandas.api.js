@@ -60,4 +60,27 @@ export class ComandasAPI {
         }
         return response.data
     }
+
+    async addItemToComanda(menuId, unit, quantity, estimatedPrice) {
+        const response = await this.axios.post(`/comanda-cliente/items`, {
+            menu_id: menuId,
+            req_unit: unit,
+            req_quantity: quantity,
+            req_estimated_price: estimatedPrice
+        }, { withCredentials: true })
+        if (response.status !== 200) {
+            throw new Error("Erro ao adicionar item")
+        }
+        return response.data
+    }
+
+    async removeItemFromComanda(itemId) {
+        const response = await this.axios.delete(`/comanda-cliente/items?item_id=${itemId}`, {
+            withCredentials: true
+        })
+        if (response.status !== 200) {
+            throw new Error("Erro ao remover item")
+        }
+        return response.data
+    }
 }

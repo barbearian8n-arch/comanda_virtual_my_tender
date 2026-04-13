@@ -40,6 +40,11 @@ export default function PageProdutoView() {
         if (formData.unidade === 'kg' && formData.g_por_uni) {
             return (Number(formData.g_por_uni) * Number(formData.preco)) / 1000;
         }
+
+        if (formData.unidade === 'uni') {
+            return Number(formData.preco);
+        }
+
         return null;
     }
 
@@ -204,7 +209,9 @@ export default function PageProdutoView() {
                                                 />
                                             </div>
                                             <div className="form-text">
-                                                Vazio se unidade for 'uni' ou g_por_uni for nulo.
+                                                (Preço &times; Grama por Unidade) &divide; 1000 &rarr; se unidade for 'kg'.
+                                                <br />
+                                                utilizado na estimativa de preço da unidade.
                                             </div>
                                         </div>
 

@@ -27,3 +27,11 @@ export async function saveWeights(key, items) {
 export async function updateDeliveryFee(key, value) {
     return await engine.updateDeliveryFee(key, value)
 }
+
+export async function addItemToComanda(menuId, unit, quantity, estimatedPrice) {
+    return await engine.addItemToComanda(menuId, unit, quantity, estimatedPrice)
+}
+
+export async function removeItemFromComanda(itemId) {
+    return await engine.removeItemFromComanda(itemId)
+}

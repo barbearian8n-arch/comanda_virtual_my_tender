@@ -7,6 +7,7 @@ import PageProdutos from './pages/Produtos'
 import PageProdutoView from './pages/ProdutoView'
 import PageProdutoNovo from './pages/ProdutoNovo'
 import PageCardapio from './pages/Cardapio'
+import PageClienteEntrada from './pages/ClienteEntrada'
 import { useNavigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useEffect, useMemo, useState } from 'react'
@@ -62,6 +63,7 @@ function App() {
           <Route path="/comandas/:key" element={<PageComanda />} />
           <Route path="/comandas/:key/balanca" element={<PageBalanca />} />
           <Route path="/comandas/:key/delivery-fee" element={<PageDeliveryFee />} />
+          <Route path="/cliente/:key" element={<PageClienteEntrada />} />
         </Routes>
       </main>
 

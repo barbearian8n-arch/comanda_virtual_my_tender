@@ -1,14 +1,27 @@
-import { useMemo, useEffect } from "react"
+import { useMemo, useEffect, useState } from "react"
 import { useSearchParams } from "react-router-dom"
 import { useRequest } from "../hooks/useRequest"
 import { getProdutos, getCategorias } from "../services/produtos"
 import { HandleResponse } from "../components/HandleResponse"
 import { formatPrice } from "../utils/formatters"
+import ModalAdicionarItem from "../components/ModalAdicionarItem"
+import DrawerCarrinho from "../components/DrawerCarrinho"
+
+function getCookie(name) {
+    const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`))
+    return match ? decodeURIComponent(match[1]) : null
+}
 
 export default function PageCardapio() {
     const [searchParams, setSearchParams] = useSearchParams()
     const urlCategoria = searchParams.get("categoria")
-    
+    const [produtoSelecionado, setProdutoSelecionado] = useState(null)
+    const [carrinhoOpen, setCarrinhoOpen] = useState(false)
+    const [carrinhoCount, setCarrinhoCount] = useState(0)
+
+    const comandaKey = getCookie("comanda_key")
+    const modoCliente = !!comandaKey
+
     const categoriasResponse = useRequest(getCategorias, [], [])
 
     useEffect(() => {
@@ -37,7 +50,7 @@ export default function PageCardapio() {
 
     const produtosAgrupados = useMemo(() => {
         if (!response.data) return {}
-        let filtered = response.data.filter(p => p.is_disponivel !== false) // Somente produtos ativos
+        let filtered = response.data.filter(p => p.is_disponivel !== false)
         
         const agrupados = {}
         for (const p of filtered) {
@@ -92,9 +105,20 @@ export default function PageCardapio() {
                                     <div className="row g-3">
                                         {produtos.map(produto => (
                                             <div key={produto.id} className="col-12 col-md-6 col-lg-4">
-                                                <div className="card h-100 border-0 shadow-sm rounded-4 overflow-hidden" style={{ transition: 'transform 0.2s' }}>
+                                                <div
+                                                    className={`card h-100 border-0 shadow-sm rounded-4 overflow-hidden ${modoCliente ? 'card-hover' : ''}`}
+                                                    style={{ transition: 'transform 0.2s', cursor: modoCliente ? 'pointer' : 'default' }}
+                                                    onClick={() => modoCliente && setProdutoSelecionado(produto)}
+                                                >
                                                     <div className="card-body d-flex flex-column">
-                                                        <h5 className="card-title fw-bold mb-1">{produto.nome}</h5>
+                                                        <div className="d-flex justify-content-between align-items-start mb-1">
+                                                            <h5 className="card-title fw-bold mb-0 flex-grow-1">{produto.nome}</h5>
+                                                            {modoCliente && (
+                                                                <span className="ms-2 text-danger fs-5">
+                                                                    <i className="bi bi-plus-circle-fill" />
+                                                                </span>
+                                                            )}
+                                                        </div>
                                                         {produto.descricao && (
                                                             <p className="card-text text-muted small flex-grow-1 mb-2">
                                                                 {produto.descricao}
@@ -127,6 +151,56 @@ export default function PageCardapio() {
                     )}
                 </HandleResponse>
             </div>
+
+            {/* FAB – Carrinho (somente em modo cliente) */}
+            {modoCliente && (
+                <button
+                    className="btn btn-danger rounded-circle shadow-lg position-fixed d-flex align-items-center justify-content-center"
+                    style={{
+                        bottom: 24, right: 24,
+                        width: 60, height: 60,
+                        fontSize: 24, zIndex: 1000,
+                        boxShadow: "0 4px 20px rgba(220,38,38,0.4)"
+                    }}
+                    onClick={() => setCarrinhoOpen(true)}
+                    title="Ver carrinho"
+                >
+                    <i className="bi bi-cart3" />
+                    {carrinhoCount > 0 && (
+                        <span
+                            className="position-absolute top-0 end-0 badge rounded-pill bg-dark"
+                            style={{ fontSize: "0.65rem" }}
+                        >
+                            {carrinhoCount}
+                        </span>
+                    )}
+                </button>
+            )}
+
+            {/* Modal de pedido */}
+            {modoCliente && produtoSelecionado && (
+                <ModalAdicionarItem
+                    produto={produtoSelecionado}
+                    onClose={() => setProdutoSelecionado(null)}
+                    onAdded={() => setCarrinhoCount(c => c + 1)}
+                />
+            )}
+
+            {/* Drawer de carrinho */}
+            {modoCliente && (
+                <DrawerCarrinho
+                    open={carrinhoOpen}
+                    onClose={() => setCarrinhoOpen(false)}
+                    onItemRemoved={() => setCarrinhoCount(c => Math.max(0, c - 1))}
+                />
+            )}
+
+            <style>{`
+                .card-hover:hover {
+                    transform: translateY(-2px);
+                    box-shadow: 0 8px 24px rgba(220,38,38,0.15) !important;
+                }
+            `}</style>
         </div>
     )
 }
