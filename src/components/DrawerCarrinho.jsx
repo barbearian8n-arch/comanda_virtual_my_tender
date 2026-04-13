@@ -176,7 +176,7 @@ export default function DrawerCarrinho({ open, onClose, onItemRemoved }) {
                         }}
                     >
                         <i className="bi bi-box-arrow-right me-2" />
-                        Sair da Comanda
+                        Sair da Comanda 
                     </button>
                 </div>
             </div>
