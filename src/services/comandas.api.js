@@ -85,6 +85,16 @@ export class ComandasAPI {
         return response.data
     }
 
+    async finishComanda(key) {
+        const response = await this.axios.post(`/comandas/finish`, { key })
+
+        if (response.status !== 200) {
+            throw new Error("Erro ao finalizar comanda")
+        }
+
+        return response.data
+    }
+
     async saveWeights(key, items) {
         const response = await this.axios.post(`/comandas/weights`, { key, items })
         if (response.status !== 200) {

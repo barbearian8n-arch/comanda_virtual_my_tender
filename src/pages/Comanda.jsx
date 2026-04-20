@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom"
 import { useRequest } from "../hooks/useRequest"
-import { getComanda, updateDeliveryFee, updateComandaValues } from "../services/comandas"
+import { getComanda, updateDeliveryFee, updateComandaValues, finishComanda } from "../services/comandas"
 import { formatPhone, formatPrice, formatUnit, formatName } from "../utils/formatters"
 import { calculateComandaTotals } from "../utils/calculations"
 import { HandleResponse } from "../components/HandleResponse"
@@ -12,6 +12,7 @@ export default function PageComanda() {
     const statusMap = {
         open: { label: "Aberta", class: "bg-success text-white" },
         weighing: { label: "Pesando", class: "bg-warning text-white" },
+        closing: { label: "Fechando", class: "bg-warning text-white" },
         confirming: { label: "Confirmando", class: "bg-warning text-white" },
         closed: { label: "Fechada", class: "bg-secondary text-white" }
     }
@@ -26,6 +27,12 @@ export default function PageComanda() {
 
     async function handleUpdateDeliveryFee(key, value) {
         await updateDeliveryFee(key, value)
+
+        comandaResp.refetch()
+    }
+
+    async function handleFinishComanda(data) {
+        await finishComanda(data.key)
 
         comandaResp.refetch()
     }
@@ -135,9 +142,14 @@ export default function PageComanda() {
                             </div>
                             <div className="d-flex flex-row gap-2 mt-3 mt-md-0">
                                 {!isEditingValues ? (
-                                    <button onClick={() => handleEditClick(data)} className="btn btn-dark rounded-pill px-4 fw-bold">
-                                        <i className="bi bi-pencil me-2"></i> Editar
-                                    </button>
+                                    <div className="d-flex flex-column gap-2">
+                                        <button onClick={() => handleEditClick(data)} className="btn btn-dark rounded-pill px-4 fw-bold">
+                                            <i className="bi bi-pencil me-2"></i> Editar
+                                        </button>
+                                        <button onClick={() => handleFinishComanda(data)} className="btn btn-dark rounded-pill px-4 fw-bold">
+                                            <i className="bi bi-check me-2"></i> Finalizar
+                                        </button>
+                                    </div>
                                 ) : (
                                     <div className="d-flex flex-column gap-2 w-100">
                                         <button onClick={() => handleSaveValues(data)} disabled={isSavingValues} className="btn btn-success rounded-pill px-4 fw-bold">

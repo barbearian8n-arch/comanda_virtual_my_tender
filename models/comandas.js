@@ -257,6 +257,14 @@ async function closeComanda(key) {
     return data;
 }
 
+async function finishComanda(key) {
+    const { data, error } = await mytenderClient.post("/command/finish", { key });
+
+    if (error) throw error;
+
+    return data;
+}
+
 export default {
     listComandas,
     getComanda,
@@ -268,5 +276,6 @@ export default {
     getCommandIdByKey,
     addCommandItem,
     removeCommandItem,
-    closeComanda
+    closeComanda,
+    finishComanda
 }

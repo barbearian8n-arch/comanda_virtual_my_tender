@@ -40,6 +40,10 @@ export async function closeComanda(key) {
     return await engine.closeComanda(key)
 }
 
+export async function finishComanda(key) {
+    return await engine.finishComanda(key)
+}
+
 export async function addItemToComanda(menuId, unit, quantity, estimatedPrice) {
     return await engine.addItemToComanda(menuId, unit, quantity, estimatedPrice)
 }
