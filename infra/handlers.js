@@ -17,7 +17,8 @@ function createHandler() {
         get: [],
         post: [],
         put: [],
-        delete: []
+        delete: [],
+        patch: []
     };
     const methods = {}
 
@@ -78,6 +79,9 @@ function createHandler() {
         },
         delete: (...handlers) => {
             middlewares.delete.push(...handlers);
+        },
+        patch: (...handlers) => {
+            middlewares.patch.push(...handlers);
         }
     }
 
@@ -95,6 +99,10 @@ function createHandler() {
 
     handler.delete = (fn) => {
         methods.delete = fn;
+    };
+
+    handler.patch = (fn) => {
+        methods.patch = fn;
     };
 
     return handler;

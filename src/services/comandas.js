@@ -28,8 +28,12 @@ export async function updateDeliveryFee(key, value) {
     return await engine.updateDeliveryFee(key, value)
 }
 
-export async function updateComandaValues(key, totalReal, deliveryFee, deliveryAddress) {
-    return await engine.updateComandaValues(key, totalReal, deliveryFee, deliveryAddress)
+export async function updateComandaValues(key, totalReal, deliveryFee) {
+    return await engine.updateComandaValues(key, totalReal, deliveryFee)
+}
+
+export async function updateComanda(key, { delivery_address, payment_method }) {
+    return await engine.updateComanda(key, { delivery_address, payment_method })
 }
 
 export async function closeComanda(key) {

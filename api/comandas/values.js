@@ -5,9 +5,9 @@ import chat from "../../models/chat.js"
 const handler = createHandler()
 
 handler.post(async (req, res) => {
-    const { key, delivery_fee, total_real_price, delivery_address } = req.body
+    const { key, delivery_fee, total_real_price } = req.body
 
-    await comandas.updateComandaValues(key, { delivery_fee, total_real_price, delivery_address })
+    await comandas.updateComandaValues(key, { delivery_fee, total_real_price })
 
     if (delivery_fee !== undefined) {
         await chat.notifyDeliveryFeeUpdated(key)

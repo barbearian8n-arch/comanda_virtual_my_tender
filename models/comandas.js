@@ -1,4 +1,5 @@
 import { NotFoundError } from "../infra/errors.js";
+import mytenderClient from "../infra/mytender.js";
 import supabase from "../infra/supabase.js";
 
 /**
@@ -161,14 +162,30 @@ async function updateDeliveryFee(key, value) {
     return data;
 }
 
-async function updateComandaValues(key, { delivery_fee, total_real_price, delivery_address }) {
+async function updateComandaValues(key, { delivery_fee, total_real_price }) {
     const { data, error } = await supabase
         .schema("public")
         .from("command")
         .update({
             ...(delivery_fee !== undefined && { delivery_fee }),
-            ...(total_real_price !== undefined && { total_real_price }),
-            ...(delivery_address !== undefined && { delivery_address })
+            ...(total_real_price !== undefined && { total_real_price })
+        })
+        .eq("key", key);
+
+    if (error) {
+        throw error;
+    }
+
+    return data;
+}
+
+async function updateComanda(key, { delivery_address, payment_method }) {
+    const { data, error } = await supabase
+        .schema("public")
+        .from("command")
+        .update({
+            ...(delivery_address != undefined && { delivery_address }),
+            ...(payment_method !== undefined && { payment_method })
         })
         .eq("key", key);
 
@@ -233,15 +250,10 @@ async function removeCommandItem(itemId) {
 }
 
 async function closeComanda(key) {
-    const { data, error } = await supabase
-        .schema("public")
-        .from("command")
-        .update({ status: "closing" })
-        .eq("key", key)
-        .select()
-        .single();
+    const { data, error } = await mytenderClient.post("/command/close", { key });
 
     if (error) throw error;
+
     return data;
 }
 
@@ -252,6 +264,7 @@ export default {
     updateCommandStatusToOpen,
     updateDeliveryFee,
     updateComandaValues,
+    updateComanda,
     getCommandIdByKey,
     addCommandItem,
     removeCommandItem,

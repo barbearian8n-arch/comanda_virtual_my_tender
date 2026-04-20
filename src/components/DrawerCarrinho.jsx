@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
-import { getComanda, removeItemFromComanda, closeComanda } from "../services/comandas"
+import { getComanda, removeItemFromComanda, closeComanda, updateComanda } from "../services/comandas"
 import { formatPrice } from "../utils/formatters"
 import toast from "react-hot-toast"
 
@@ -20,6 +20,7 @@ export default function DrawerCarrinho({ open, onClose, onItemRemoved }) {
     const [removingId, setRemovingId] = useState(null)
     const [deliveryMethod, setDeliveryMethod] = useState("entrega") // entrega | retirada
     const [address, setAddress] = useState("")
+    const [paymentMethod, setPaymentMethod] = useState("pix") // pix | cartão
 
     const key = getCookie("comanda_key")
 
@@ -37,6 +38,9 @@ export default function DrawerCarrinho({ open, onClose, onItemRemoved }) {
                     setDeliveryMethod("entrega")
                     setAddress(data.delivery_address)
                 }
+            }
+            if (data.payment_method) {
+                setPaymentMethod(data.payment_method.toLowerCase())
             }
         } catch (e) {
             console.error(e)
@@ -73,7 +77,7 @@ export default function DrawerCarrinho({ open, onClose, onItemRemoved }) {
         try {
             setLoading(true)
             const finalAddress = deliveryMethod === "retirada" ? "Retirada no local" : address
-            await updateComandaValues(key, undefined, undefined, finalAddress)
+            await updateComanda(key, { delivery_address: finalAddress, payment_method: paymentMethod.toUpperCase() })
             await closeComanda(key)
             toast.success("Comanda fechada com sucesso!")
             onClose?.()
@@ -233,6 +237,24 @@ export default function DrawerCarrinho({ open, onClose, onItemRemoved }) {
                                         </div>
                                     </div>
                                 )}
+
+                                <div className="mb-4">
+                                    <label htmlFor="paymentMethod" className="form-label small fw-bold text-muted">Forma de pagamento</label>
+                                    <div className="input-group">
+                                        <span className="input-group-text bg-white border-end-0">
+                                            <i className="bi bi-cash-stack text-success"></i>
+                                        </span>
+                                        <select 
+                                            id="paymentMethod"
+                                            className="form-select border-start-0 ps-0"
+                                            value={paymentMethod}
+                                            onChange={(e) => setPaymentMethod(e.target.value)}
+                                        >
+                                            <option value="pix">PIX</option>
+                                            <option value="cartão">Cartão</option>
+                                        </select>
+                                    </div>
+                                </div>
 
                                 <p className="text-muted small mb-3">
                                     * itens em kg serão calculados após a pesagem

@@ -53,16 +53,25 @@ export class ComandasAPI {
         return response.data
     }
 
-    async updateComandaValues(key, totalReal, deliveryFee, deliveryAddress) {
-        const response = await this.axios.post(`/comandas/values`, { 
-            key, 
-            total_real_price: totalReal === "" ? null : Number(totalReal), 
-            ...(deliveryFee !== undefined && { delivery_fee: deliveryFee === "" ? null : Number(deliveryFee) }),
-            ...(deliveryAddress !== undefined && { delivery_address: deliveryAddress })
+    async updateComandaValues(key, totalReal, deliveryFee) {
+        const response = await this.axios.post(`/comandas/values`, {
+            key,
+            total_real_price: totalReal === "" ? null : Number(totalReal),
+            delivery_fee: deliveryFee === "" ? null : Number(deliveryFee)
         })
         if (response.status !== 200) {
             throw new Error("Erro ao atualizar valores")
         }
+        return response.data
+    }
+
+    async updateComanda(key, { delivery_address, payment_method }) {
+        const response = await this.axios.patch(`/comandas`, { key, delivery_address, payment_method })
+
+        if (response.status !== 200) {
+            throw new Error("Erro ao atualizar endereço de entrega")
+        }
+
         return response.data
     }
 
