@@ -4,7 +4,6 @@ import { getComanda, updateDeliveryFee, updateComandaValues, finishComanda } fro
 import { formatPhone, formatPrice, formatUnit, formatName } from "../utils/formatters"
 import { calculateComandaTotals } from "../utils/calculations"
 import { HandleResponse } from "../components/HandleResponse"
-import { Link } from "react-router-dom"
 import { useState } from "react"
 import toast from "react-hot-toast"
 
@@ -72,12 +71,7 @@ export default function PageComanda() {
                                     <h4>Comanda <span className="fw-normal text-muted">#{data.id}</span></h4>
                                     <p className="subtitle">Cliente: {formatName(data.contact.name)}</p>
                                     <p className="subtitle">Telefone: {formatPhone(data.contact.number_normalized)}</p>
-                                    <p className="subtitle">
-                                        Endereço da Entrega: {data.delivery_address || data.client_endereco || "Não informado"}
-                                        <Link to={`/comandas/${data.key}/delivery-fee`} className="btn btn-link p-0">
-                                            <i className="bi bi-pencil text-muted"></i>
-                                        </Link>
-                                    </p>
+                                    <p className="subtitle">Endereço da Entrega: {data.delivery_address || "Não informado"}</p>
                                 </div>
                                 <span className={`status-badge ${statusMap[data.status].class}`}>
                                     {statusMap[data.status].label}
@@ -91,15 +85,15 @@ export default function PageComanda() {
                         <div className="app-footer">
                             <div className="d-flex flex-column flex-grow-1 me-4">
                                 {(() => {
-                                    const { subtotal, taxaEntrega, total } = calculateComandaTotals(data.items, data.delivery_fee);
+                                    const { subtotal, subtotal_real, taxaEntrega, total } = calculateComandaTotals(data.items, data);
                                     return (
                                         <>
                                             <div className="footer-detail-row">
-                                                <span className="footer-detail-label">Preço estimado</span>
-                                                <span className="footer-detail-value">{formatPrice(subtotal)}</span>
+                                                <span className="footer-detail-label">Subtotal Estimado</span>
+                                                <span className="footer-detail-value text-muted">{formatPrice(subtotal)}</span>
                                             </div>
                                             <div className="footer-detail-row align-items-center">
-                                                <span className="footer-detail-label">Preço final</span>
+                                                <span className="footer-detail-label">Subtotal Real</span>
                                                 {isEditingValues ? (
                                                     <input 
                                                         type="number" 
@@ -109,7 +103,7 @@ export default function PageComanda() {
                                                     />
                                                 ) : (
                                                     <span className="footer-detail-value d-flex flex-row align-items-center gap-1">
-                                                        {formatPrice(data.total_real_price ?? 0)}
+                                                        {formatPrice(subtotal_real ?? 0)}
                                                     </span>
                                                 )}
                                             </div>

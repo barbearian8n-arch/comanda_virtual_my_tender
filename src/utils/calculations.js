@@ -41,12 +41,13 @@ export function calculateSubtotal(items) {
 /**
  * Calcula os totais da comanda (subtotal, taxa de entrega, total final).
  * @param {Array} items Lista de itens
- * @param {number|null} deliveryFee Taxa de entrega (pode ser null)
+ * @param {Object} comanda Objeto da comanda
  * @returns {Object} Objeto com subtotal, taxaEntrega e total
  */
-export function calculateComandaTotals(items, deliveryFee) {
+export function calculateComandaTotals(items, comanda) {
     const subtotal = calculateSubtotal(items);
-    const taxaEntrega = deliveryFee || 0;
-    const total = subtotal + taxaEntrega;
-    return { subtotal, taxaEntrega, total };
+    const subtotal_real = comanda.total_real_price;
+    const taxaEntrega = comanda.delivery_fee || 0;
+    const total = (subtotal_real || subtotal) + taxaEntrega;
+    return { subtotal, subtotal_real, taxaEntrega, total };
 }
