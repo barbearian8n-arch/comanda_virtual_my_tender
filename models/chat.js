@@ -8,8 +8,13 @@ async function notifyDeliveryFeeUpdated(key) {
     await mytenderClient.post("/notify-agent", { key, event: "delivery_fee_updated" });
 }
 
+async function notifyComandaClosed(key) {
+    await mytenderClient.post("/notify-agent", { key, event: "command_closed" });
+}
+
 export default {
     notifyWeighingFinished,
-    notifyDeliveryFeeUpdated
+    notifyDeliveryFeeUpdated,
+    notifyComandaClosed
 }
 

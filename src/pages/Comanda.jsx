@@ -1,6 +1,6 @@
 import { useParams } from "react-router-dom"
 import { useRequest } from "../hooks/useRequest"
-import { getComanda, updateDeliveryFee } from "../services/comandas"
+import { getComanda, updateDeliveryFee, updateComandaValues } from "../services/comandas"
 import { formatPhone, formatPrice, formatUnit, formatName } from "../utils/formatters"
 import { calculateComandaTotals } from "../utils/calculations"
 import { HandleResponse } from "../components/HandleResponse"
@@ -19,10 +19,39 @@ export default function PageComanda() {
     const { key } = useParams()
     const comandaResp = useRequest(getComanda, [key])
 
+    const [isEditingValues, setIsEditingValues] = useState(false)
+    const [editDeliveryFee, setEditDeliveryFee] = useState("")
+    const [editTotalReal, setEditTotalReal] = useState("")
+    const [isSavingValues, setIsSavingValues] = useState(false)
+
     async function handleUpdateDeliveryFee(key, value) {
         await updateDeliveryFee(key, value)
 
         comandaResp.refetch()
+    }
+
+    function handleEditClick(data) {
+        setIsEditingValues(true)
+        setEditDeliveryFee(data.delivery_fee !== null ? data.delivery_fee : "")
+        setEditTotalReal(data.total_real_price !== null ? data.total_real_price : "")
+    }
+
+    function handleCancelEdit() {
+        setIsEditingValues(false)
+    }
+
+    async function handleSaveValues(data) {
+        try {
+            setIsSavingValues(true)
+            await updateComandaValues(data.key, editTotalReal, editDeliveryFee)
+            toast.success("Valores atualizados com sucesso!")
+            setIsEditingValues(false)
+            comandaResp.refetch()
+        } catch (error) {
+            toast.error(error.message)
+        } finally {
+            setIsSavingValues(false)
+        }
     }
 
     return (
@@ -37,7 +66,7 @@ export default function PageComanda() {
                                     <p className="subtitle">Cliente: {formatName(data.contact.name)}</p>
                                     <p className="subtitle">Telefone: {formatPhone(data.contact.number_normalized)}</p>
                                     <p className="subtitle">
-                                        Endereço da Entrega: {data.client_endereco}
+                                        Endereço da Entrega: {data.delivery_address || data.client_endereco || "Não informado"}
                                         <Link to={`/comandas/${data.key}/delivery-fee`} className="btn btn-link p-0">
                                             <i className="bi bi-pencil text-muted"></i>
                                         </Link>
@@ -59,18 +88,40 @@ export default function PageComanda() {
                                     return (
                                         <>
                                             <div className="footer-detail-row">
-                                                <span className="footer-detail-label">Subtotal</span>
+                                                <span className="footer-detail-label">Preço estimado</span>
                                                 <span className="footer-detail-value">{formatPrice(subtotal)}</span>
                                             </div>
-                                            <div className="footer-detail-row">
+                                            <div className="footer-detail-row align-items-center">
+                                                <span className="footer-detail-label">Preço final</span>
+                                                {isEditingValues ? (
+                                                    <input 
+                                                        type="number" 
+                                                        className="form-control form-control-sm w-50" 
+                                                        value={editTotalReal} 
+                                                        onChange={(e) => setEditTotalReal(e.target.value)} 
+                                                    />
+                                                ) : (
+                                                    <span className="footer-detail-value d-flex flex-row align-items-center gap-1">
+                                                        {formatPrice(data.total_real_price ?? 0)}
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="footer-detail-row align-items-center">
                                                 <span className="footer-detail-label">Taxa de Entrega</span>
-                                                <Editable initialValue={data.delivery_fee ?? ""} onSave={(value) => handleUpdateDeliveryFee(data.key, value)}>
-                                                    {data.delivery_fee === null ? (
+                                                {isEditingValues ? (
+                                                    <input 
+                                                        type="number" 
+                                                        className="form-control form-control-sm w-50" 
+                                                        value={editDeliveryFee} 
+                                                        onChange={(e) => setEditDeliveryFee(e.target.value)} 
+                                                    />
+                                                ) : (
+                                                    data.delivery_fee === null ? (
                                                         <span className="footer-detail-value not-defined">não definido</span>
                                                     ) : (
                                                         <span className="footer-detail-value">{taxaEntrega > 0 ? formatPrice(taxaEntrega) : "Grátis"}</span>
-                                                    )}
-                                                </Editable>
+                                                    )
+                                                )}
                                             </div>
                                             <div className="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
                                                 <span className="footer-total-label">Total da Comanda</span>
@@ -83,9 +134,20 @@ export default function PageComanda() {
                                 })()}
                             </div>
                             <div className="d-flex flex-row gap-2 mt-3 mt-md-0">
-                                <Link to={`/comandas/${data.key}/balanca`} className="btn btn-dark rounded-pill px-4 fw-bold">
-                                    Balança
-                                </Link>
+                                {!isEditingValues ? (
+                                    <button onClick={() => handleEditClick(data)} className="btn btn-dark rounded-pill px-4 fw-bold">
+                                        <i className="bi bi-pencil me-2"></i> Editar
+                                    </button>
+                                ) : (
+                                    <div className="d-flex flex-column gap-2 w-100">
+                                        <button onClick={() => handleSaveValues(data)} disabled={isSavingValues} className="btn btn-success rounded-pill px-4 fw-bold">
+                                            {isSavingValues ? "Salvando..." : "Salvar"}
+                                        </button>
+                                        <button onClick={handleCancelEdit} disabled={isSavingValues} className="btn btn-outline-danger rounded-pill px-4 fw-bold">
+                                            Cancelar
+                                        </button>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </>
@@ -93,71 +155,6 @@ export default function PageComanda() {
             </HandleResponse>
         </div>
     )
-}
-
-function Editable({ onSave, children, initialValue = "" }) {
-    const [status, setStatus] = useState("idle")
-    const [value, setValue] = useState(initialValue)
-
-    async function save() {
-        try {
-            setStatus("saving")
-            await onSave(value)
-            toast.success("Valor atualizado com sucesso!")
-            setStatus("idle")
-        } catch (error) {
-            toast.error(error.message)
-            setStatus("editing")
-        }
-    }
-
-    function cancel() {
-        setValue(initialValue)
-        setStatus("idle")
-    }
-
-    function edit() {
-        setStatus("editing")
-    }
-
-    if (status === "saving") {
-        return (
-            <span className="footer-detail-value not-defined d-flex align-items-center gap-2">
-                <input type="text" className="form-control form-control-sm editable-input" onChange={(e) => setValue(e.target.value)} value={value} disabled />
-                <div className="spinner-border spinner-border-sm" role="status">
-                    <span className="visually-hidden">Loading...</span>
-                </div>
-            </span>
-        )
-    }
-
-    if (status === "idle") {
-        return (
-            <span className="footer-detail-value not-defined d-flex align-items-center gap-2">
-                {children}
-                <button className="btn btn-link p-0" onClick={edit}>
-                    <i className="bi bi-pencil text-muted"></i>
-                </button>
-            </span>
-        )
-    }
-
-    if (status === "editing") {
-        return (
-            <span className="footer-detail-value not-defined d-flex align-items-center gap-2">
-                <input type="text" className="form-control form-control-sm editable-input" onChange={(e) => setValue(e.target.value)} value={value} />
-                <button className="btn btn-link p-0" onClick={save}>
-                    <i className="bi bi-save text-success"></i>
-                </button>
-                <button className="btn btn-link p-0" onClick={cancel}>
-                    <i className="bi bi-x text-danger"></i>
-                </button>
-            </span>
-        )
-    }
-
-    console.error("Unknown status", status)
-    return null
 }
 
 function Items({ items }) {

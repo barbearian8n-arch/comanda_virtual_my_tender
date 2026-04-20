@@ -28,6 +28,14 @@ export async function updateDeliveryFee(key, value) {
     return await engine.updateDeliveryFee(key, value)
 }
 
+export async function updateComandaValues(key, totalReal, deliveryFee, deliveryAddress) {
+    return await engine.updateComandaValues(key, totalReal, deliveryFee, deliveryAddress)
+}
+
+export async function closeComanda(key) {
+    return await engine.closeComanda(key)
+}
+
 export async function addItemToComanda(menuId, unit, quantity, estimatedPrice) {
     return await engine.addItemToComanda(menuId, unit, quantity, estimatedPrice)
 }

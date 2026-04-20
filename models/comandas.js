@@ -15,6 +15,7 @@ function mapComandaToAPI(comanda) {
         client_valor_entrega: comanda.client_valor_entrega,
         delivery_address: comanda.delivery_address,
         delivery_fee: comanda.delivery_fee,
+        total_real_price: comanda.total_real_price,
         contact: {
             lead_id: comanda.client_id,
             name: comanda.client_name,
@@ -108,6 +109,16 @@ async function getComanda(key) {
         throw new NotFoundError("Comanda não encontrada");
     }
 
+    const { data: commandData, error: commandError } = await supabase
+        .schema("public")
+        .from("command")
+        .select("total_real_price")
+        .eq("key", key)
+        .single();
+    if (commandError) throw commandError;
+
+    data[0].total_real_price = commandData.total_real_price;
+
     return mapComandaToAPI(data[0]);
 }
 
@@ -142,6 +153,24 @@ async function updateCommandItems(items) {
 
 async function updateDeliveryFee(key, value) {
     const { data, error } = await supabase.schema("public").from("command").update({ delivery_fee: value }).eq("key", key);
+
+    if (error) {
+        throw error;
+    }
+
+    return data;
+}
+
+async function updateComandaValues(key, { delivery_fee, total_real_price, delivery_address }) {
+    const { data, error } = await supabase
+        .schema("public")
+        .from("command")
+        .update({
+            ...(delivery_fee !== undefined && { delivery_fee }),
+            ...(total_real_price !== undefined && { total_real_price }),
+            ...(delivery_address !== undefined && { delivery_address })
+        })
+        .eq("key", key);
 
     if (error) {
         throw error;
@@ -203,13 +232,28 @@ async function removeCommandItem(itemId) {
     return data;
 }
 
+async function closeComanda(key) {
+    const { data, error } = await supabase
+        .schema("public")
+        .from("command")
+        .update({ status: "closing" })
+        .eq("key", key)
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
 export default {
     listComandas,
     getComanda,
     updateCommandItems,
     updateCommandStatusToOpen,
     updateDeliveryFee,
+    updateComandaValues,
     getCommandIdByKey,
     addCommandItem,
-    removeCommandItem
+    removeCommandItem,
+    closeComanda
 }

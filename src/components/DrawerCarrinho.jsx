@@ -1,6 +1,5 @@
 import { useState, useEffect, useCallback } from "react"
-import { getComanda } from "../services/comandas"
-import { removeItemFromComanda } from "../services/comandas"
+import { getComanda, removeItemFromComanda, closeComanda } from "../services/comandas"
 import { formatPrice } from "../utils/formatters"
 import toast from "react-hot-toast"
 
@@ -19,6 +18,8 @@ export default function DrawerCarrinho({ open, onClose, onItemRemoved }) {
     const [comanda, setComanda] = useState(null)
     const [loading, setLoading] = useState(false)
     const [removingId, setRemovingId] = useState(null)
+    const [deliveryMethod, setDeliveryMethod] = useState("entrega") // entrega | retirada
+    const [address, setAddress] = useState("")
 
     const key = getCookie("comanda_key")
 
@@ -28,6 +29,15 @@ export default function DrawerCarrinho({ open, onClose, onItemRemoved }) {
         try {
             const data = await getComanda(key)
             setComanda(data)
+            if (data.delivery_address && !address) {
+                if (data.delivery_address === "Retirada no local") {
+                    setDeliveryMethod("retirada")
+                    setAddress("")
+                } else {
+                    setDeliveryMethod("entrega")
+                    setAddress(data.delivery_address)
+                }
+            }
         } catch (e) {
             console.error(e)
         } finally {
@@ -51,6 +61,28 @@ export default function DrawerCarrinho({ open, onClose, onItemRemoved }) {
             console.error(e)
         } finally {
             setRemovingId(null)
+        }
+    }
+
+    async function handleCloseComanda() {
+        if (deliveryMethod === "entrega" && !address.trim()) {
+            toast.error("Por favor, informe o endereço de entrega")
+            return
+        }
+
+        try {
+            setLoading(true)
+            const finalAddress = deliveryMethod === "retirada" ? "Retirada no local" : address
+            await updateComandaValues(key, undefined, undefined, finalAddress)
+            await closeComanda(key)
+            toast.success("Comanda fechada com sucesso!")
+            onClose?.()
+            fetchComanda()
+        } catch (e) {
+            toast.error("Erro ao fechar comanda")
+            console.error(e)
+        } finally {
+            setLoading(false)
         }
     }
 
@@ -140,44 +172,93 @@ export default function DrawerCarrinho({ open, onClose, onItemRemoved }) {
                             ))}
                         </div>
                     )}
-                </div>
+                
 
-                {/* Rodapé com total e ações */}
-                <div className="px-4 py-3 border-top bg-white">
-                    {items.length > 0 && (
-                        <div className="mb-3">
-                            <div className="d-flex justify-content-between align-items-center">
-                                <span className="text-muted fw-semibold">Total estimado</span>
-                                <span className="fw-bold fs-5 text-success">{formatPrice(subtotal)}</span>
+                    {/* Rodapé com total e ações */}
+                    <div className="px-4 py-3 border-top bg-white">
+                        {items.length > 0 && (
+                            <div className="mb-4">
+                                <div className="d-flex justify-content-between align-items-center mb-3">
+                                    <span className="text-muted fw-semibold">Total estimado</span>
+                                    <span className="fw-bold fs-5 text-success">{formatPrice(subtotal)}</span>
+                                </div>
+                                
+                                <div className="mb-3">
+                                    <label className="form-label small fw-bold text-muted">Como deseja receber seu pedido?</label>
+                                    <div className="d-flex gap-3">
+                                        <div className="form-check">
+                                            <input 
+                                                className="form-check-input" 
+                                                type="radio" 
+                                                name="deliveryMethod" 
+                                                id="methodEntrega" 
+                                                checked={deliveryMethod === 'entrega'}
+                                                onChange={() => setDeliveryMethod('entrega')}
+                                            />
+                                            <label className="form-check-label small" htmlFor="methodEntrega">
+                                                Entrega
+                                            </label>
+                                        </div>
+                                        <div className="form-check">
+                                            <input 
+                                                className="form-check-input" 
+                                                type="radio" 
+                                                name="deliveryMethod" 
+                                                id="methodRetirada" 
+                                                checked={deliveryMethod === 'retirada'}
+                                                onChange={() => setDeliveryMethod('retirada')}
+                                            />
+                                            <label className="form-check-label small" htmlFor="methodRetirada">
+                                                Busca no local
+                                            </label>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {deliveryMethod === 'entrega' && (
+                                    <div className="mb-4">
+                                        <label htmlFor="address" className="form-label small fw-bold text-muted">Endereço da entrega</label>
+                                        <div className="input-group">
+                                            <span className="input-group-text bg-white border-end-0">
+                                                <i className="bi bi-geo-alt text-danger"></i>
+                                            </span>
+                                            <input 
+                                                type="text" 
+                                                id="address"
+                                                className="form-control border-start-0 ps-0" 
+                                                placeholder="Rua, número, bairro..." 
+                                                value={address}
+                                                onChange={(e) => setAddress(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
+
+                                <p className="text-muted small mb-3">
+                                    * itens em kg serão calculados após a pesagem
+                                </p>
+                                
+                                <button 
+                                    className="btn btn-success w-100 py-3 fw-bold rounded-3" 
+                                    onClick={handleCloseComanda}
+                                >
+                                    <i className="bi bi-check-circle me-2" />
+                                    Fechar Pedido
+                                </button>
                             </div>
-                            <p className="text-muted small mb-3 mt-1">
-                                * itens em kg serão calculados após a pesagem
-                            </p>
-                            
-                            <button 
-                                className="btn btn-success w-100 py-3 fw-bold rounded-3" 
-                                onClick={() => {
-                                    toast.success("Pedido fechado com sucesso! Dirija-se ao caixa.")
-                                    document.cookie = "comanda_key=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
-                                    window.location.href = "/cardapio"
-                                }}
-                            >
-                                <i className="bi bi-check-circle me-2" />
-                                Fechar Pedido
-                            </button>
-                        </div>
-                    )}
+                        )}
 
-                    <button 
-                        className="btn btn-outline-secondary w-100 py-2 fw-semibold rounded-3" 
-                        onClick={() => {
-                            document.cookie = "comanda_key=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
-                            window.location.href = "/cardapio"
-                        }}
-                    >
-                        <i className="bi bi-box-arrow-right me-2" />
-                        Sair da Comanda 
-                    </button>
+                        <button 
+                            className="btn btn-outline-secondary w-100 py-2 fw-semibold rounded-3" 
+                            onClick={() => {
+                                document.cookie = "comanda_key=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;"
+                                window.location.href = "/cardapio"
+                            }}
+                        >
+                            <i className="bi bi-box-arrow-right me-2" />
+                            Sair da Comanda 
+                        </button>
+                    </div>
                 </div>
             </div>
         </>

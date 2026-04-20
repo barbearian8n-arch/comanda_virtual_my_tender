@@ -22,7 +22,7 @@ export class ComandasAPI {
 
     async getComandasWithKgItems() {
         const comandas = await this.getComandas()
-        return comandas.filter(comanda => 
+        return comandas.filter(comanda =>
             (comanda.items || []).some(item => item.to_be_weighed || (item.menu_info && item.menu_info.unit === "kg"))
         )
     }
@@ -50,6 +50,29 @@ export class ComandasAPI {
         if (response.status !== 200) {
             throw new Error("Erro ao atualizar taxa de entrega")
         }
+        return response.data
+    }
+
+    async updateComandaValues(key, totalReal, deliveryFee, deliveryAddress) {
+        const response = await this.axios.post(`/comandas/values`, { 
+            key, 
+            total_real_price: totalReal === "" ? null : Number(totalReal), 
+            ...(deliveryFee !== undefined && { delivery_fee: deliveryFee === "" ? null : Number(deliveryFee) }),
+            ...(deliveryAddress !== undefined && { delivery_address: deliveryAddress })
+        })
+        if (response.status !== 200) {
+            throw new Error("Erro ao atualizar valores")
+        }
+        return response.data
+    }
+
+    async closeComanda(key) {
+        const response = await this.axios.post(`/comandas/close`, { key })
+
+        if (response.status !== 200) {
+            throw new Error("Erro ao fechar comanda")
+        }
+
         return response.data
     }
 
