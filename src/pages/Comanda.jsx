@@ -140,7 +140,7 @@ export default function PageComanda() {
                                         <button onClick={() => handleEditClick(data)} className="btn btn-dark rounded-pill px-4 fw-bold">
                                             <i className="bi bi-pencil me-2"></i> Editar
                                         </button>
-                                        <button onClick={() => handleFinishComanda(data)} className="btn btn-dark rounded-pill px-4 fw-bold">
+                                        <button onClick={() => handleFinishComanda(data)} disabled={data.status !== "closing" || data.total_real_price === 0} className="btn btn-dark rounded-pill px-4 fw-bold">
                                             <i className="bi bi-check me-2"></i> Finalizar
                                         </button>
                                     </div>
