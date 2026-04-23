@@ -91,7 +91,7 @@ function App() {
           <Route path="/comandas/:key" element={<PageComanda />} />
           <Route path="/comandas/:key/balanca" element={<PageBalanca />} />
           <Route path="/comandas/:key/delivery-fee" element={<PageDeliveryFee />} />
-          <Route path="/cliente/:key" element={<PageClienteEntrada />} />
+          <Route path="/cliente/:client_id" element={<PageClienteEntrada />} />
         </Routes>
       </main>
 

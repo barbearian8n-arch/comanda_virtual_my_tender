@@ -37,6 +37,26 @@ export class ComandasAPI {
         return response.data
     }
 
+    async getComandaByClientId(clientId) {
+        const response = await this.axios.get(`/comandas?client_id=${clientId}`)
+
+        if (response.status !== 200) {
+            throw new Error("Erro ao buscar comanda")
+        }
+
+        return response.data
+    }
+
+    async createComanda(clientId) {
+        const response = await this.axios.post(`/comandas`, { client_id: clientId })
+
+        if (response.status !== 200) {
+            throw new Error("Erro ao criar comanda")
+        }
+
+        return response.data
+    }
+
     async updateItem(key, itemId, data) {
         const response = await this.axios.put(`/comandas/${key}/items/${itemId}`, data)
         if (response.status !== 200) {

@@ -48,6 +48,14 @@ export async function addItemToComanda(menuId, unit, quantity, estimatedPrice) {
     return await engine.addItemToComanda(menuId, unit, quantity, estimatedPrice)
 }
 
+export async function getComandaByClientId(clientId) {
+    return await engine.getComandaByClientId(clientId)
+}
+
+export async function createComanda(clientId) {
+    return await engine.createComanda(clientId)
+}
+
 export async function removeItemFromComanda(itemId) {
     return await engine.removeItemFromComanda(itemId)
 }

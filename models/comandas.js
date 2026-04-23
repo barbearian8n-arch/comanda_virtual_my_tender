@@ -87,7 +87,7 @@ function mapCommandItemsToDB(items) {
 /**
  * @returns {Promise<APICommand[]>}
  */
-async function listComandas() {
+async function listCommands() {
     const { data, error } = await supabase.schema("public").from("view_command_w_items").select("*");
     if (error) {
         throw error;
@@ -100,7 +100,7 @@ async function listComandas() {
  * @param {string} key
  * @returns {Promise<APICommand>}
  */
-async function getComanda(key) {
+async function getCommand(key) {
     const { data, error } = await supabase.schema("public").from("view_command_w_items").select("*").eq("command_key", key);
     if (error) {
         throw error;
@@ -115,6 +115,30 @@ async function getComanda(key) {
         .from("command")
         .select("total_real_price")
         .eq("key", key)
+        .single();
+    if (commandError) throw commandError;
+
+    data[0].total_real_price = commandData.total_real_price;
+
+    return mapComandaToAPI(data[0]);
+}
+
+
+async function getCommandByClientId(clientId) {
+    const { data, error } = await supabase.schema("public").from("view_command_w_items").select("*").eq("client_id", clientId);
+    if (error) {
+        throw error;
+    }
+
+    if (data.length === 0) {
+        throw new NotFoundError("Comanda não encontrada");
+    }
+
+    const { data: commandData, error: commandError } = await supabase
+        .schema("public")
+        .from("command")
+        .select("total_real_price")
+        .eq("client_id", clientId)
         .single();
     if (commandError) throw commandError;
 
@@ -265,17 +289,46 @@ async function finishComanda(key) {
     return data;
 }
 
+async function createCommand(clientId) {
+    const { data: clientData, error: clientError } = await supabase
+        .schema("public")
+        .from("padaria")
+        .select("*")
+        .eq("id", clientId)
+        .single();
+    if (clientError) throw clientError;
+
+    const { data, error } = await supabase
+        .schema("public")
+        .from("command")
+        .insert({
+            key: String(clientData.numero),
+            client_id: clientId,
+        })
+        .select()
+        .single();
+
+    if (error) throw error;
+    return data;
+}
+
 export default {
-    listComandas,
-    getComanda,
+    listCommands,
+    getCommand,
+    getCommandByClientId,
+    getCommandIdByKey,
+
     updateCommandItems,
     updateCommandStatusToOpen,
     updateDeliveryFee,
     updateComandaValues,
     updateComanda,
-    getCommandIdByKey,
+
+    createCommand,
+
     addCommandItem,
     removeCommandItem,
+
     closeComanda,
     finishComanda
 }
