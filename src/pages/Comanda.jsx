@@ -23,6 +23,7 @@ export default function PageComanda() {
     const [editDeliveryFee, setEditDeliveryFee] = useState("")
     const [editTotalReal, setEditTotalReal] = useState("")
     const [isSavingValues, setIsSavingValues] = useState(false)
+    const [isFinalizing, setIsFinalizing] = useState(false)
 
     async function handleUpdateDeliveryFee(key, value) {
         await updateDeliveryFee(key, value)
@@ -31,9 +32,20 @@ export default function PageComanda() {
     }
 
     async function handleFinishComanda(data) {
-        await finishComanda(data.key)
+        setIsFinalizing(true)
+        toast.loading("Finalizando comanda...")
 
-        comandaResp.refetch()
+        try {
+            await finishComanda(data.key)
+            toast.dismiss()
+            toast.success("Comanda finalizada com sucesso!")
+        } catch (error) {
+            toast.dismiss()
+            toast.error(error.message)
+        } finally {
+            comandaResp.refetch()
+            setIsFinalizing(false)
+        }
     }
 
     function handleEditClick(data) {
@@ -72,6 +84,7 @@ export default function PageComanda() {
                                     <p className="subtitle">Cliente: {formatName(data.contact.name)}</p>
                                     <p className="subtitle">Telefone: {formatPhone(data.contact.number_normalized)}</p>
                                     <p className="subtitle">Endereço da Entrega: {data.delivery_address || "Não informado"}</p>
+                                    <p className="subtitle">Forma de Pagamento: {data.payment_method || "Não informado"}</p>
                                 </div>
                                 <span className={`status-badge ${statusMap[data.status].class}`}>
                                     {statusMap[data.status].label}
@@ -137,10 +150,10 @@ export default function PageComanda() {
                             <div className="d-flex flex-row gap-2 mt-3 mt-md-0">
                                 {!isEditingValues ? (
                                     <div className="d-flex flex-column gap-2">
-                                        <button onClick={() => handleEditClick(data)} className="btn btn-dark rounded-pill px-4 fw-bold">
+                                        <button onClick={() => handleEditClick(data)} disabled={isFinalizing} className="btn btn-dark rounded-pill px-4 fw-bold">
                                             <i className="bi bi-pencil me-2"></i> Editar
                                         </button>
-                                        <button onClick={() => handleFinishComanda(data)} disabled={data.status !== "closing" || data.total_real_price === 0} className="btn btn-dark rounded-pill px-4 fw-bold">
+                                        <button onClick={() => handleFinishComanda(data)} disabled={isFinalizing || data.status !== "closing" || data.total_real_price === 0} className="btn btn-dark rounded-pill px-4 fw-bold">
                                             <i className="bi bi-check me-2"></i> Finalizar
                                         </button>
                                     </div>

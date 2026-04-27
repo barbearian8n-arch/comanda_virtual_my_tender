@@ -17,6 +17,7 @@ function mapComandaToAPI(comanda) {
         delivery_address: comanda.delivery_address,
         delivery_fee: comanda.delivery_fee,
         total_real_price: comanda.total_real_price,
+        payment_method: comanda.payment_method,
         contact: {
             lead_id: comanda.client_id,
             name: comanda.client_name,
