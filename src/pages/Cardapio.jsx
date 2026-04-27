@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom"
 import { useRequest } from "../hooks/useRequest"
 import { getProdutos, getCategorias } from "../services/produtos"
 import { HandleResponse } from "../components/HandleResponse"
-import { formatPrice } from "../utils/formatters"
+import { displayPrice, displayUnitLabel, formatPrice, getDisplayUnit, getValidDisplayUnits } from "../utils/formatters"
 import ModalAdicionarItem from "../components/ModalAdicionarItem"
 import DrawerCarrinho from "../components/DrawerCarrinho"
 
@@ -127,11 +127,11 @@ export default function PageCardapio() {
                                                         <div className="d-flex justify-content-between align-items-end mt-auto pt-2 border-top">
                                                             <div>
                                                                 <span className="fw-bold fs-5 text-success">
-                                                                    {formatPrice(produto.preco)}
+                                                                    {formatPrice(displayPrice(produto))}
                                                                 </span>
-                                                                {produto.unidade && (
-                                                                    <span className="text-muted ms-1 small">/ {produto.unidade}</span>
-                                                                )}
+                                                                
+                                                                <span className="text-muted ms-1 small">/ {displayUnitLabel(getDisplayUnit(produto))}</span>
+                                                                
                                                             </div>
                                                         </div>
                                                     </div>

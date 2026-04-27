@@ -3,7 +3,7 @@ import { useParams, useNavigate } from "react-router-dom"
 import { useRequest } from "../hooks/useRequest"
 import { HandleResponse } from "../components/HandleResponse"
 import { getProduto, updateProduto, deleteProduto } from "../services/produtos"
-import { formatPrice } from "../utils/formatters"
+import { formatPrice, getDisplayPriceLabel, displayPrice, getValidDisplayUnits, getDisplayUnit, displayUnitLabel } from "../utils/formatters"
 import toast from "react-hot-toast"
 
 export default function PageProdutoView() {
@@ -18,7 +18,8 @@ export default function PageProdutoView() {
         preco: 0,
         unidade: '',
         g_por_uni: '',
-        is_disponivel: true
+        is_disponivel: true,
+        display_unit: ''
     })
     const [isSaving, setIsSaving] = useState(false)
     const [isDeleting, setIsDeleting] = useState(false)
@@ -31,7 +32,8 @@ export default function PageProdutoView() {
                 preco: response.data.preco || 0,
                 unidade: response.data.unidade || '',
                 g_por_uni: response.data.g_por_uni || '',
-                is_disponivel: response.data.is_disponivel !== false
+                is_disponivel: response.data.is_disponivel !== false,
+                display_unit: response.data.display_unit || ''
             })
         }
     }, [response.data, isEditing])
@@ -59,7 +61,8 @@ export default function PageProdutoView() {
                 unidade: formData.unidade,
                 g_por_uni: formData.g_por_uni ? Number(formData.g_por_uni) : null,
                 preco_por_uni: preco_por_uni,
-                is_disponivel: formData.is_disponivel
+                is_disponivel: formData.is_disponivel,
+                display_unit: formData.display_unit ? formData.display_unit : null
             }
             await updateProduto(id, payload)
             toast.success("Produto atualizado com sucesso!")
@@ -215,6 +218,28 @@ export default function PageProdutoView() {
                                             </div>
                                         </div>
 
+                                        <div>
+                                            <label className="form-label fw-semibold">Preço de Exibição (Unidade de Referência)</label>
+                                            <select
+                                                className="form-select" 
+                                                value={formData.display_unit}
+                                                onChange={e => setFormData({...formData, display_unit: e.target.value})}
+                                            >
+                                                <option value="">Padrão (mesma da Unidade)</option>
+                                                {getValidDisplayUnits({
+                                                    unidade: formData.unidade, 
+                                                    preco_por_uni: precoPorUniCalc()
+                                                }).map(unit => (
+                                                    <option key={unit} value={unit}>
+                                                        {displayUnitLabel(unit)}
+                                                    </option>
+                                                ))}
+                                            </select>
+                                            <div className="form-text">
+                                                Como o preço será exibido no cardápio para o cliente.
+                                            </div>
+                                        </div>
+
                                         <button 
                                             className="btn btn-primary mt-3"
                                             onClick={handleSave}
@@ -255,7 +280,13 @@ export default function PageProdutoView() {
                                         <p className="card-meta mt-3">
                                             <strong>Preço: </strong><br/>
                                             <span className="fs-5 text-success fw-bold">
-                                                {formatPrice(produto.preco)}
+                                                {formatPrice(produto.preco)} / {produto.unidade}
+                                            </span>
+                                        </p>
+                                        <p className="card-meta mt-3">
+                                            <strong>Preço de exibição: </strong><br/>
+                                            <span className="fs-5 text-info fw-bold">
+                                                {getDisplayPriceLabel(produto)}
                                             </span>
                                         </p>
                                     </div>
