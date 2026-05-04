@@ -223,7 +223,7 @@ function Item({ item }) {
             </div>
             <div className="d-flex justify-content-between align-items-center">
                 <span className="item-meta">
-                    {qty} {formatUnit({unit})} &times; {formatPrice(unitPrice)}
+                    {qty} {formatUnit({unit})} &times; {formatPrice(item.menu_info.price)} / {item.menu_info.unit}
                 </span>
             </div>
         </div>
