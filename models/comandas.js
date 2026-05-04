@@ -16,6 +16,7 @@ function mapComandaToAPI(comanda) {
         client_valor_entrega: comanda.client_valor_entrega,
         delivery_address: comanda.delivery_address,
         delivery_fee: comanda.delivery_fee,
+        delivery_date: comanda.delivery_date,
         total_real_price: comanda.total_real_price,
         payment_method: comanda.payment_method,
         contact: {

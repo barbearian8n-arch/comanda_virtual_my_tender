@@ -72,6 +72,15 @@ export default function PageComanda() {
         }
     }
 
+    function formatDateTime(date) {
+        if (!date) return "Não informado"
+        if (date === "agora") return "Imediata"
+
+        const dateObj = new Date(date)
+        if (isNaN(dateObj.getTime())) return date
+        return dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + " às " + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+    }
+
     return (
         <div className="d-flex flex-column h-100">
             <HandleResponse response={comandaResp}>
@@ -80,11 +89,20 @@ export default function PageComanda() {
                         <div className="page-content">
                             <div className="page-title-section">
                                 <div>
-                                    <h4>Comanda <span className="fw-normal text-muted">#{data.id}</span></h4>
+                                    <h4>
+                                        Comanda
+                                        <span className="fw-normal text-muted">#{data.id}</span>
+                                        {data.delivery_date && data.delivery_date !== "agora" && (
+                                            <span className="ms-3 badge bg-primary">Agendado</span>
+                                        )}
+                                    </h4>
                                     <p className="subtitle">Cliente: {formatName(data.contact.name)}</p>
                                     <p className="subtitle">Telefone: {formatPhone(data.contact.number_normalized)}</p>
                                     <p className="subtitle">Endereço da Entrega: {data.delivery_address || "Não informado"}</p>
                                     <p className="subtitle">Forma de Pagamento: {data.payment_method || "Não informado"}</p>
+                                    {data.delivery_date && data.delivery_date !== "agora" && (
+                                        <p className="subtitle">Data/Hora da Entrega: {formatDateTime(data.delivery_date)}</p>
+                                    )}
                                 </div>
                                 <span className={`status-badge ${statusMap[data.status].class}`}>
                                     {statusMap[data.status].label}
