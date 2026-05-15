@@ -85,8 +85,8 @@ export class ComandasAPI {
         return response.data
     }
 
-    async updateComanda(key, { delivery_address, payment_method }) {
-        const response = await this.axios.patch(`/comandas`, { key, delivery_address, payment_method })
+    async updateComanda(key, { delivery_address, payment_method, delivery_payment_change }) {
+        const response = await this.axios.patch(`/comandas`, { key, delivery_address, payment_method, delivery_payment_change })
 
         if (response.status !== 200) {
             throw new Error("Erro ao atualizar endereço de entrega")

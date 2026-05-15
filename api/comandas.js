@@ -31,9 +31,9 @@ handler.post(async (req, res) => {
 })
 
 handler.patch(async (req, res) => {
-    const { key, delivery_address, payment_method } = req.body
+    const { key, delivery_address, payment_method, delivery_payment_change } = req.body
 
-    await comandas.updateComanda(key, { delivery_address, payment_method })
+    await comandas.updateComanda(key, { delivery_address, payment_method, delivery_payment_change })
 
     res.status(200).json({ success: true })
 })

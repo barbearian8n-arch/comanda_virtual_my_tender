@@ -19,6 +19,7 @@ function mapComandaToAPI(comanda) {
         delivery_date: comanda.delivery_date,
         total_real_price: comanda.total_real_price,
         payment_method: comanda.payment_method,
+        delivery_payment_change: comanda.delivery_payment_change,
         contact: {
             lead_id: comanda.client_id,
             name: comanda.client_name,
@@ -205,13 +206,14 @@ async function updateComandaValues(key, { delivery_fee, total_real_price }) {
     return data;
 }
 
-async function updateComanda(key, { delivery_address, payment_method }) {
+async function updateComanda(key, { delivery_address, payment_method, delivery_payment_change }) {
     const { data, error } = await supabase
         .schema("public")
         .from("command")
         .update({
             ...(delivery_address != undefined && { delivery_address }),
-            ...(payment_method !== undefined && { payment_method })
+            ...(payment_method !== undefined && { payment_method }),
+            ...(delivery_payment_change !== undefined && { delivery_payment_change })
         })
         .eq("key", key);
 

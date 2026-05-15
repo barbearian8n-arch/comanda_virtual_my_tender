@@ -103,6 +103,9 @@ export default function PageComanda() {
                                     {data.delivery_date && data.delivery_date !== "agora" && (
                                         <p className="subtitle">Data/Hora da Entrega: {formatDateTime(data.delivery_date)}</p>
                                     )}
+                                    {data.delivery_payment_change != null && (
+                                        <p className="subtitle">Troco para: {formatPrice(data.delivery_payment_change)}</p>
+                                    )}
                                 </div>
                                 <span className={`status-badge ${statusMap[data.status].class}`}>
                                     {statusMap[data.status].label}

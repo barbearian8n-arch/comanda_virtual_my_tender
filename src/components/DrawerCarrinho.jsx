@@ -21,6 +21,7 @@ export default function DrawerCarrinho({ open, onClose, onItemRemoved }) {
     const [deliveryMethod, setDeliveryMethod] = useState("entrega") // entrega | retirada
     const [address, setAddress] = useState("")
     const [paymentMethod, setPaymentMethod] = useState("pix") // pix | cartão
+    const [deliveryPaymentChange, setDeliveryPaymentChange] = useState() // valor numérico
 
     const key = getCookie("comanda_key")
 
@@ -41,6 +42,9 @@ export default function DrawerCarrinho({ open, onClose, onItemRemoved }) {
             }
             if (data.payment_method) {
                 setPaymentMethod(data.payment_method.toLowerCase())
+            }
+            if (data.delivery_payment_change != null) {
+                setDeliveryPaymentChange(data.delivery_payment_change)
             }
         } catch (e) {
             console.error(e)
@@ -77,7 +81,11 @@ export default function DrawerCarrinho({ open, onClose, onItemRemoved }) {
         try {
             setLoading(true)
             const finalAddress = deliveryMethod === "retirada" ? "Retirada no local" : address
-            await updateComanda(key, { delivery_address: finalAddress, payment_method: paymentMethod.toUpperCase() })
+            await updateComanda(key, {
+                delivery_address: finalAddress,
+                payment_method: paymentMethod.toUpperCase(),
+                delivery_payment_change: deliveryPaymentChange ? Number(deliveryPaymentChange) : null
+            })
             await closeComanda(key)
             toast.success("Comanda fechada com sucesso!")
             onClose?.()
@@ -252,9 +260,30 @@ export default function DrawerCarrinho({ open, onClose, onItemRemoved }) {
                                         >
                                             <option value="pix">PIX</option>
                                             <option value="cartão">Cartão</option>
+                                            <option value="dinheiro">Dinheiro</option>
+                                            
                                         </select>
                                     </div>
                                 </div>
+
+                                {paymentMethod === "dinheiro" && (
+                                    <div className="mb-4">
+                                        <label htmlFor="troco" className="form-label small fw-bold text-muted">Precisa de troco?</label>
+                                        <div className="input-group">
+                                            <span className="input-group-text bg-white border-end-0">
+                                                <i className="bi bi-cash-stack text-success"></i>
+                                            </span>
+                                            <input
+                                                id="troco"
+                                                type="number"
+                                                className="form-control border-start-0 ps-0"
+                                                placeholder="Valor"
+                                                value={deliveryPaymentChange}
+                                                onChange={(e) => setDeliveryPaymentChange(e.target.value)}
+                                            />
+                                        </div>
+                                    </div>
+                                )}
 
                                 <p className="text-muted small mb-3">
                                     * itens em kg serão calculados após a pesagem
