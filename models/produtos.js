@@ -88,7 +88,7 @@ async function updateProduto(id, updates) {
 }
 
 async function updateEmbedding(id) {
-    const { data, error } = await mytenderClient.post(`/menu/embedding`, { id })
+    const { data, error } = await mytenderClient.post(`/menu/embedding-openai`, { id })
 
     if (error) {
         throw error;
