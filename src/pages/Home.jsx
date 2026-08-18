@@ -12,22 +12,12 @@ export default function PageHome() {
     return (
         <div className="d-flex flex-column h-100">
             <div className="page-content">
-                <div className="d-flex justify-content-between align-items-center page-title-section">
-                    <div>
-                        <h4>Comandas Abertas</h4>
-                        <p className="subtitle">Lista de comandas abertas</p>
-                    </div>
-                    <div className="d-flex gap-2 flex-wrap justify-content-end">
-                        <Link to="/cardapio" className="btn btn-danger fw-bold">
-                            <i className="bi bi-journal-text me-2"></i> Cardápio
-                        </Link>
-                        <Link to="/produtos" className="btn btn-primary fw-bold">
-                            <i className="bi bi-box me-2"></i> Produtos
-                        </Link>
-                        <Link to="/balanca" className="btn btn-warning fw-bold text-dark">
-                            <i className="bi bi-speedometer2 me-2"></i> Balança
-                        </Link>
-                    </div>
+                {/* Cardápio, Produtos e Mensagens foram para a navegação do
+                    cabeçalho: são atalhos globais, não ações desta tela — e de lá
+                    ficam alcançáveis de qualquer página. */}
+                <div className="page-title-section">
+                    <h4>Comandas Abertas</h4>
+                    <p className="subtitle">Lista de comandas abertas</p>
                 </div>
                 <HandleResponse response={response}>
                     {(comandas) => (
