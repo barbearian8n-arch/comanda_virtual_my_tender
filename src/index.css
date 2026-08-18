@@ -86,6 +86,110 @@ body {
   background: rgba(0,0,0,0.05);
 }
 
+/* ===== Navegação do topo =====
+   Antes eram botões cheios no corpo da Home. No cabeçalho fixo aquilo
+   competiria com o título e com o conteúdo, então aqui viram pílulas
+   discretas: só o item ativo ganha preenchimento. */
+.nav-topo {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.nav-topo-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.4rem 0.7rem;
+  border-radius: 999px;
+  color: var(--text-muted);
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.9rem;
+  line-height: 1;
+  white-space: nowrap;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.nav-topo-item i {
+  font-size: 1.05rem;
+}
+
+.nav-topo-item:hover {
+  background: rgba(255, 71, 87, 0.08);
+  color: var(--primary-color);
+}
+
+.nav-topo-item.is-ativo {
+  background: var(--bg-color);
+  color: var(--primary-color);
+  box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+}
+
+/* no celular sobra pouco espaço ao lado do título: fica só o ícone */
+.nav-topo-item span {
+  display: none;
+}
+
+@media (min-width: 992px) {
+  .nav-topo-item span {
+    display: inline;
+  }
+}
+
+@media (max-width: 400px) {
+  .nav-topo-item {
+    padding: 0.4rem 0.5rem;
+  }
+}
+
+/* ===== Menu Gestão ===== */
+.menu-gestao {
+  position: absolute;
+  right: 0;
+  top: calc(100% + 0.35rem);
+  z-index: 1050;
+  min-width: 200px;
+  padding: 0.35rem 0;
+  background: var(--card-bg);
+  border: 1px solid var(--border-color);
+  border-radius: 12px;
+  box-shadow: 0 8px 24px rgba(0, 0, 0, 0.12);
+}
+
+.menu-gestao-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  padding: 0.5rem 0.9rem;
+  color: var(--text-main);
+  text-decoration: none;
+  font-size: 0.88rem;
+  transition: background 0.15s, color 0.15s;
+}
+
+.menu-gestao-item i {
+  width: 1.1rem;
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.menu-gestao-item:hover {
+  background: var(--bg-color);
+  color: var(--primary-color);
+}
+
+.menu-gestao-item:hover i,
+.menu-gestao-item.is-ativo i {
+  color: var(--primary-color);
+}
+
+.menu-gestao-item.is-ativo {
+  background: var(--bg-color);
+  color: var(--primary-color);
+  font-weight: 600;
+}
+
 /* ===== Main Content ===== */
 .app-main {
   flex: 1;

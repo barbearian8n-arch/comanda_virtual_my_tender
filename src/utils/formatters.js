@@ -1,14 +1,47 @@
+/**
+ * `5511981412826` → `+55 (11) 98141-2826`; `557788701739` → `+55 (77) 8870-1739`.
+ *
+ * O número do assinante tem 9 dígitos (celular) ou 8 (fixo e celular antigo), e
+ * os dois convivem no banco. Por isso o desmembramento é decidido pelo total de
+ * dígitos, e não por uma máscara fixa: a versão anterior assumia 4+4 sempre e
+ * empurrava o dígito extra para o código do país, exibindo os números de 13
+ * dígitos como `+551 (19) 8141-2826`.
+ *
+ * Só desmembra o que tem cara de número brasileiro. Formato desconhecido volta
+ * como veio — telefone exibido errado é pior que telefone sem formatação.
+ */
 export function formatPhone(phone) {
     if (!phone) return ""
-    let reversed = reverseString(phone)
-    reversed = reversed.replace(/(\d{4})(\d{4})(\d{2})(\d*)/, "$1,$2,$3,$4")
 
-    const [countryCode, ddd, ...rest] = reversed.split(",").reverse().map(reverseString)
-    return `+${countryCode} (${ddd}) ${rest.join("-")}`
-}
+    const digits = String(phone).replace(/\D/g, "")
+    const bruto = String(phone)
 
-export function reverseString(str) {
-    return str.split("").reverse().join("")
+    let pais = ""
+    let ddd = ""
+    let assinante = ""
+
+    if (digits.length === 12 || digits.length === 13) {
+        // 12/13 dígitos que não começam com 55 é número de fora: sem o código do
+        // país certo, qualquer corte aqui seria chute
+        if (!digits.startsWith("55")) return bruto
+
+        pais = digits.slice(0, 2)
+        ddd = digits.slice(2, 4)
+        assinante = digits.slice(4)
+    } else if (digits.length === 10 || digits.length === 11) {
+        ddd = digits.slice(0, 2)
+        assinante = digits.slice(2)
+    } else if (digits.length === 8 || digits.length === 9) {
+        assinante = digits
+    } else {
+        return bruto
+    }
+
+    // os últimos 4 são sempre o sufixo: sobra 5 no celular de 9, 4 no de 8
+    const corte = assinante.length - 4
+    const numero = `${assinante.slice(0, corte)}-${assinante.slice(corte)}`
+
+    return [pais && `+${pais}`, ddd && `(${ddd})`, numero].filter(Boolean).join(" ")
 }
 
 export function formatUnit(item) {
