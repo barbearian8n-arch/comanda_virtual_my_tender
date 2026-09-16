@@ -28,6 +28,25 @@ const actions = {
             res.status(200).json(conversas)
         }
     },
+    // Upload de áudio da loja para a conversa. O arquivo vem no corpo como
+    // application/octet-stream e o tipo real no cabeçalho — se fosse pelo
+    // Content-Type, a Vercel tentaria interpretar o corpo em vez de entregá-lo
+    // como Buffer.
+    audio: {
+        post: async (req, res) => {
+            const { sender, telefone } = req.query
+
+            const contentType = (req.headers["x-audio-content-type"] || req.headers["content-type"] || "")
+                .split(";")[0]
+                .trim()
+
+            const buffer = Buffer.isBuffer(req.body) ? req.body : null
+
+            const mensagem = await waMessages.uploadAudio(sender, telefone, buffer, contentType)
+
+            res.status(200).json(mensagem)
+        }
+    },
     messages: {
         get: async (req, res) => {
             const { sender, telefone } = req.query
@@ -67,6 +86,16 @@ handler.get(async (req, res) => {
     }
 
     await entry.get(req, res)
+})
+
+handler.post(async (req, res) => {
+    const entry = getActionEntry(req)
+
+    if (!entry.post) {
+        throw new MethodNotAllowedError("Method Not Allowed")
+    }
+
+    await entry.post(req, res)
 })
 
 export default handler

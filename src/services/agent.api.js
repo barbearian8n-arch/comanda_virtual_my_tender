@@ -31,6 +31,30 @@ export class AgentAPI {
         return response.data
     }
 
+    /**
+     * O arquivo sobe cru, como application/octet-stream, e o tipo real vai num
+     * cabeçalho à parte: mandado como Content-Type, o corpo seria interpretado
+     * em vez de chegar como Buffer no servidor.
+     */
+    async uploadAudio(sender, telefone, arquivo) {
+        const response = await this.axios.post(
+            `/ai/audio?sender=${encodeURIComponent(sender)}&telefone=${encodeURIComponent(telefone)}`,
+            arquivo,
+            {
+                headers: {
+                    "Content-Type": "application/octet-stream",
+                    "X-Audio-Content-Type": arquivo.type
+                }
+            }
+        )
+
+        if (response.status !== 200) {
+            throw new Error("Erro ao enviar o áudio")
+        }
+
+        return response.data
+    }
+
     async listMessages(sender, telefone) {
         const response = await this.axios.get(
             `/ai/messages?sender=${encodeURIComponent(sender)}&telefone=${encodeURIComponent(telefone)}`
