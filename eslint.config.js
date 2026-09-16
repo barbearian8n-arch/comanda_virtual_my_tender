@@ -26,4 +26,12 @@ export default defineConfig([
       'no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
     },
   },
+  // api/, models/ e infra/ rodam como função serverless na Vercel, não no
+  // navegador: sem os globais de Node, todo `process.env` vira erro de lint.
+  {
+    files: ['api/**/*.js', 'models/**/*.js', 'infra/**/*.js'],
+    languageOptions: {
+      globals: globals.node,
+    },
+  },
 ])

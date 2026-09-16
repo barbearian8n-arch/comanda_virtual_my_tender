@@ -8,6 +8,7 @@ import PageProdutoNovo from './pages/ProdutoNovo'
 import PageCardapio from './pages/Cardapio'
 import PageClienteEntrada from './pages/ClienteEntrada'
 import PageMensagens from './pages/Mensagens'
+import PageConfiguracoes from './pages/Configuracoes'
 import { useNavigate } from 'react-router-dom'
 import { Toaster } from 'react-hot-toast'
 import { useEffect, useMemo, useState } from 'react'
@@ -47,10 +48,12 @@ function NavTopo({ caminhoAtual }) {
 
 const LINKS_GESTAO = [
   { to: "/produtos", label: "Produtos", icone: "bi-box" },
-  { to: "/mensagens", label: "Mensagens", icone: "bi-whatsapp" }
+  { to: "/mensagens", label: "Mensagens", icone: "bi-whatsapp" },
+  { to: "/configuracoes", label: "Configurações", icone: "bi-gear" }
 ]
 
-// dropdown próprio: o projeto não carrega o JS do Bootstrap
+// dropdown controlado por estado, e não pelo data-bs-toggle do Bootstrap:
+// o menu precisa fechar ao navegar e marcar o item da rota atual
 function MenuGestao({ caminhoAtual }) {
   const [aberto, setAberto] = useState(false)
 
@@ -163,6 +166,7 @@ function App() {
           <Route path="/produtos/novo" element={<PageProdutoNovo />} />
           <Route path="/produtos/:id" element={<PageProdutoView />} />
           <Route path="/mensagens" element={<PageMensagens />} />
+          <Route path="/configuracoes" element={<PageConfiguracoes />} />
           <Route path="/login" element={<PageLogin />} />
           <Route path="/register" element={<PageRegister />} />
           <Route path="/comandas/:key" element={<PageComanda />} />

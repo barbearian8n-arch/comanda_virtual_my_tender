@@ -3,7 +3,7 @@ import toast from "react-hot-toast"
 import { HandleResponse, Loading } from "../components/HandleResponse"
 import { useRequest } from "../hooks/useRequest"
 import { useAutoRefresh } from "../hooks/useAutoRefresh"
-import { listSenders, listConversations, listMessages } from "../services/agent"
+import { listSenders, listConversations, listMessages, uploadAudio } from "../services/agent"
 import { formatPhone } from "../utils/formatters"
 
 const INTERVALO_MS = 60_000
@@ -128,7 +128,16 @@ function ItemConversa({ conversa, ativa, onSelecionar }) {
 
                 <div className={`small text-truncate ${ativa ? "" : "text-muted"}`}>
                     {conversa.ultima.de_mim && <i className="bi bi-reply-fill me-1"></i>}
-                    {conversa.ultima.texto || <em>{conversa.ultima.tipo}</em>}
+                    {/* na prévia o áudio não toca, então vale o que foi dito nele;
+                        sem transcrição ainda, ao menos diz que é um áudio */}
+                    {conversa.ultima.midia ? (
+                        <>
+                            <i className="bi bi-mic-fill me-1"></i>
+                            {conversa.ultima.transcricao || <em>Áudio</em>}
+                        </>
+                    ) : (
+                        conversa.ultima.texto || <em>{conversa.ultima.tipo}</em>
+                    )}
                 </div>
 
                 <div className="d-flex gap-1 mt-1">
@@ -141,8 +150,49 @@ function ItemConversa({ conversa, ativa, onSelecionar }) {
     )
 }
 
+/**
+ * O áudio e, embaixo, o que foi dito nele.
+ *
+ * A transcrição vem do n8n e chega depois do arquivo, então `null` aqui não é
+ * erro: é o intervalo entre o áudio subir e a transcrição ficar pronta. Dizer
+ * isso em letras é melhor que não mostrar nada, que pareceria uma transcrição
+ * que nunca vai vir.
+ *
+ * `preload="none"` porque uma conversa pode ter dezenas de áudios: sem isso o
+ * navegador começaria a baixar todos ao abrir a thread.
+ */
+function Audio({ mensagem }) {
+    return (
+        <>
+            <audio
+                controls
+                preload="none"
+                src={mensagem.midia}
+                className="d-block"
+                style={{ width: "min(280px, 100%)" }}
+            />
+
+            {mensagem.transcricao ? (
+                <div className="mt-2 pt-2 border-top">
+                    <span className="text-muted d-block" style={{ fontSize: ".7rem" }}>
+                        <i className="bi bi-card-text me-1"></i>transcrição
+                    </span>
+                    <span className="small" style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                        {mensagem.transcricao}
+                    </span>
+                </div>
+            ) : (
+                <div className="mt-2 pt-2 border-top text-muted" style={{ fontSize: ".7rem" }}>
+                    <i className="bi bi-hourglass-split me-1"></i>sem transcrição ainda
+                </div>
+            )}
+        </>
+    )
+}
+
 function Balao({ mensagem }) {
     const minha = mensagem.de_mim
+    const temAudio = Boolean(mensagem.midia)
 
     return (
         <div className={`d-flex mb-2 ${minha ? "justify-content-end" : "justify-content-start"}`}>
@@ -150,15 +200,20 @@ function Balao({ mensagem }) {
                 className={`rounded-4 px-3 py-2 ${minha ? "bg-success-subtle" : "bg-light border"}`}
                 style={{ maxWidth: "min(560px, 85%)" }}
             >
-                {mensagem.tipo !== "text" && (
+                {/* com player à vista, repetir "audio" em cima dele não informa nada */}
+                {mensagem.tipo !== "text" && !temAudio && (
                     <div className="small fw-semibold text-muted mb-1">
                         <i className="bi bi-paperclip me-1"></i>{mensagem.tipo}
                     </div>
                 )}
 
-                <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
-                    {mensagem.texto || <em className="text-muted">sem texto</em>}
-                </div>
+                {temAudio ? (
+                    <Audio mensagem={mensagem} />
+                ) : (
+                    <div style={{ whiteSpace: "pre-wrap", wordBreak: "break-word" }}>
+                        {mensagem.texto || <em className="text-muted">sem texto</em>}
+                    </div>
+                )}
 
                 <div className="d-flex align-items-center justify-content-end gap-2 mt-1">
                     {minha && (
@@ -175,11 +230,29 @@ function Balao({ mensagem }) {
     )
 }
 
-function Conversa({ telefone, nome, mensagens, carregando, onVoltar }) {
+function Conversa({ telefone, nome, mensagens, carregando, onVoltar, onEnviarAudio }) {
     const painelRef = useRef(null)
     const noFimRef = useRef(true)
     const telefoneRenderizadoRef = useRef(null)
     const [mostrarBotaoFim, setMostrarBotaoFim] = useState(false)
+    const [enviando, setEnviando] = useState(false)
+
+    async function escolherArquivo(evento) {
+        const arquivo = evento.target.files?.[0]
+
+        // limpo já: sem isso, escolher o MESMO arquivo de novo depois de um erro
+        // não dispara o onChange e parece que o botão travou
+        evento.target.value = ""
+
+        if (!arquivo) return
+
+        setEnviando(true)
+        try {
+            await onEnviarAudio(arquivo)
+        } finally {
+            setEnviando(false)
+        }
+    }
 
     function aoRolar() {
         const painel = painelRef.current
@@ -287,6 +360,35 @@ function Conversa({ telefone, nome, mensagens, carregando, onVoltar }) {
                     </button>
                 )}
             </div>
+
+            <div className="card-footer bg-white d-flex align-items-center gap-2 flex-wrap">
+                {/* <label> embrulhando um input escondido: é o jeito de ter um
+                    botão de verdade sem o seletor de arquivo cru do navegador */}
+                <label className={`btn btn-sm btn-outline-success mb-0 ${enviando ? "disabled" : ""}`}>
+                    {enviando ? (
+                        <>
+                            <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                            Enviando áudio…
+                        </>
+                    ) : (
+                        <>
+                            <i className="bi bi-mic-fill me-2"></i>Enviar áudio
+                        </>
+                    )}
+
+                    <input
+                        type="file"
+                        accept="audio/*"
+                        className="d-none"
+                        disabled={enviando}
+                        onChange={escolherArquivo}
+                    />
+                </label>
+
+                <span className="text-muted" style={{ fontSize: ".72rem" }}>
+                    A transcrição é feita depois, pelo robô.
+                </span>
+            </div>
         </div>
     )
 }
@@ -366,6 +468,27 @@ export default function PageMensagens() {
         setBusca("")
         setSender(novo)
     }
+
+    /**
+     * O arquivo sobe e a conversa recarrega na hora — a lista também, porque o
+     * áudio vira a última mensagem e a prévia à esquerda ficaria desatualizada.
+     *
+     * Erro vira toast e não derruba nada: o áudio não foi enviado, mas a
+     * conversa que estava na tela continua lá para tentar de novo.
+     */
+    const enviarAudio = useCallback(async (arquivo) => {
+        const telefone = selecionadaRef.current
+
+        if (!telefone || !senderRef.current) return
+
+        try {
+            await uploadAudio(senderRef.current, telefone, arquivo)
+            await Promise.all([carregarThread(telefone), response.refetchSilencioso()])
+            toast.success("Áudio enviado")
+        } catch (error) {
+            toast.error(error.response?.data?.message || error.message)
+        }
+    }, [carregarThread, response])
 
     // uma recarga só para as duas metades da tela: sem isto o indicador apagaria
     // antes de a conversa aberta terminar de chegar
@@ -525,6 +648,7 @@ export default function PageMensagens() {
                                         mensagens={thread.telefone === selecionada ? thread.mensagens : []}
                                         carregando={carregandoThread}
                                         onVoltar={voltarParaLista}
+                                        onEnviarAudio={enviarAudio}
                                     />
                                 ) : (
                                     <div className="card border-0 shadow-sm">
