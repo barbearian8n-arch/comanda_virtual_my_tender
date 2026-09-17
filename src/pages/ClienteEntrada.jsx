@@ -1,10 +1,11 @@
 import { useEffect } from "react"
-import { useParams, useNavigate } from "react-router-dom"
+import { useParams, useNavigate, useLocation } from "react-router-dom"
 import { getComandaByClientId, createComanda } from "../services/comandas"
 
 export default function PageClienteEntrada() {
     const { client_id } = useParams()
     const navigate = useNavigate()
+    const location = useLocation()
 
     function catch404(error) {
         if (error.status === 404) {
@@ -26,11 +27,15 @@ export default function PageClienteEntrada() {
 
             const expires = new Date(Date.now() + 60 * 60 * 1000).toUTCString()
             document.cookie = `comanda_key=${encodeURIComponent(comanda.key)}; path=/; expires=${expires}; SameSite=Lax`
-            navigate("/cardapio", { replace: true })
+            // Leva a query adiante. É por ela que o robô manda o cliente direto
+            // ao que ele perguntou (`?categoria=pizza`); descartada aqui, o link
+            // caía sempre na primeira categoria do cardápio, que raramente tem
+            // relação com a conversa.
+            navigate(`/cardapio${location.search}`, { replace: true })
         }
 
         loadComanda()
-    }, [client_id, navigate])
+    }, [client_id, navigate, location.search])
 
     return (
         <div className="d-flex align-items-center justify-content-center h-100">

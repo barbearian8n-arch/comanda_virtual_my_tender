@@ -6,6 +6,7 @@ import { HandleResponse } from "../components/HandleResponse"
 import { displayPrice, displayUnitLabel, formatPrice, getDisplayUnit, getValidDisplayUnits } from "../utils/formatters"
 import ModalAdicionarItem from "../components/ModalAdicionarItem"
 import DrawerCarrinho from "../components/DrawerCarrinho"
+import { resolverCategorias, TODOS } from "../utils/categorias"
 
 function getCookie(name) {
     const match = document.cookie.match(new RegExp(`(?:^|;\\s*)${name}=([^;]+)`))
@@ -34,35 +35,61 @@ export default function PageCardapio() {
         }
     }, [categoriasResponse.data, urlCategoria, setSearchParams])
 
-    const selectedCategoria = urlCategoria === "todos" ? "" : (urlCategoria || "")
-    const requestDependency = urlCategoria === null ? "waiting" : urlCategoria;
+    /**
+     * O que veio na URL nem sempre é o nome exato de uma categoria: o robô manda
+     * links como `?categoria=pizza`, em texto corrido. `resolverCategorias`
+     * traduz isso para o que existe de verdade — ver src/utils/categorias.js.
+     */
+    const listaCategorias = categoriasResponse.data ?? null
+    const alvo = useMemo(
+        () => resolverCategorias(urlCategoria, listaCategorias),
+        [urlCategoria, listaCategorias]
+    )
+
+    // O servidor filtra por `eq`, então só dá para delegar a ele quando é UMA
+    // categoria. Com várias, busca tudo e o recorte acontece no agrupamento.
+    const filtroServidor = alvo.modo === "uma" ? alvo.categorias[0] : ""
+    const selectedCategoria = filtroServidor
+
+    // espera as categorias chegarem: resolver contra lista vazia daria "nenhuma"
+    // e dispararia uma busca a mais, que seria refeita assim que elas chegassem
+    const pronto = urlCategoria !== null && listaCategorias !== null
+    const requestDependency = pronto ? (filtroServidor || TODOS) : "waiting"
 
     const response = useRequest(async () => {
-        if (urlCategoria === null) return Promise.resolve([])
-        
+        if (!pronto) return Promise.resolve([])
+
         const filters = {}
-        if (selectedCategoria) {
-            filters.categoria = selectedCategoria
+        if (filtroServidor) {
+            filters.categoria = filtroServidor
         }
-        
+
         return getProdutos(0, -1, filters)
     }, [requestDependency], [requestDependency])
 
     const produtosAgrupados = useMemo(() => {
         if (!response.data) return {}
         let filtered = response.data.filter(p => p.is_disponivel !== false)
-        
+
+        // "pizza" casa com nove categorias: mostra a lista completa recortada
+        // nelas, em vez de escolher uma na sorte
+        if (alvo.modo === "varias") {
+            const permitidas = new Set(alvo.categorias)
+            filtered = filtered.filter(p => permitidas.has(p.categoria))
+        }
+
         const agrupados = {}
         for (const p of filtered) {
             const cat = p.categoria || "Outros"
             if (!agrupados[cat]) agrupados[cat] = []
             agrupados[cat].push(p)
         }
-        
-        return agrupados
-    }, [response.data])
 
-    const isTodosActive = urlCategoria === "todos"
+        return agrupados
+    }, [response.data, alvo])
+
+    // com várias (ou nenhuma), a lista mostrada É a de todos — recortada
+    const isTodosActive = alvo.modo !== "uma"
 
     return (
         <div className="d-flex flex-column h-100 pb-4">
@@ -94,6 +121,39 @@ export default function PageCardapio() {
                     </div>
                 )}
             </HandleResponse>
+
+            {/* O cliente chegou por um link do robô. Sem dizer o que está sendo
+                mostrado, ele veria um cardápio recortado sem entender por quê —
+                ou, pior, concluiria que a loja só tem aquilo. */}
+            {alvo.modo === "varias" && (
+                <div className="px-3 pb-2">
+                    <div className="alert alert-light border d-flex align-items-center gap-2 py-2 mb-0 small">
+                        <i className="bi bi-funnel text-danger"></i>
+                        <span className="flex-grow-1">
+                            Mostrando <strong>{alvo.categorias.length} categorias</strong> de
+                            {" "}<strong>{urlCategoria}</strong>
+                        </span>
+                        <button
+                            type="button"
+                            className="btn btn-sm btn-link p-0 text-decoration-none"
+                            onClick={() => setSearchParams({ categoria: TODOS })}
+                        >
+                            ver tudo
+                        </button>
+                    </div>
+                </div>
+            )}
+
+            {alvo.modo === "nenhuma" && urlCategoria && urlCategoria !== TODOS && (
+                <div className="px-3 pb-2">
+                    <div className="alert alert-warning d-flex align-items-center gap-2 py-2 mb-0 small">
+                        <i className="bi bi-info-circle"></i>
+                        <span>
+                            Não encontramos <strong>{urlCategoria}</strong> no cardápio — veja tudo abaixo.
+                        </span>
+                    </div>
+                </div>
+            )}
 
             <div className="flex-grow-1 px-3">
                 <HandleResponse response={response}>

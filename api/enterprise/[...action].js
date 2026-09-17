@@ -1,6 +1,7 @@
 import { createHandler } from "../../infra/handlers.js"
 import enterprise from "../../models/enterprise.js"
 import instancias from "../../models/evolutionInstances.js"
+import alertaSons from "../../models/alertaSons.js"
 import { MethodNotAllowedError, NotFoundError, ValidationError } from "../../infra/errors.js"
 import { requirePermissao } from "../../infra/authMiddleware.js"
 
@@ -107,6 +108,74 @@ const actions = {
             await requirePermissao("conexao.manage").handle(req, res)
 
             res.status(200).json(await instancias.removeInstance(exigirId(req.query.id)))
+        }
+    },
+
+    // Alertas sonoros: a configuração da loja e a lista de sons enviados, que a
+    // tela precisa junto para montar os seletores de timbre.
+    alertas: {
+        get: async (req, res) => {
+            await requirePermissao("config.manage").handle(req, res)
+
+            const [alertas, notificacoes, sons] = await Promise.all([
+                enterprise.getAlertasConfig(),
+                enterprise.getNotificacoesConfig(),
+                alertaSons.listar()
+            ])
+
+            res.status(200).json({ alertas, notificacoes, sons })
+        },
+        post: async (req, res) => {
+            await requirePermissao("config.manage").handle(req, res)
+
+            const { alertas, notificacoes } = req.body || {}
+
+            if (alertas === undefined && notificacoes === undefined) {
+                throw new ValidationError("Nada para atualizar")
+            }
+
+            const salvo = {}
+            if (alertas !== undefined) salvo.alertas = await enterprise.setAlertasConfig(alertas)
+            if (notificacoes !== undefined) salvo.notificacoes = await enterprise.setNotificacoesConfig(notificacoes)
+
+            res.status(200).json(salvo)
+        }
+    },
+
+    // Som enviado pela loja. O arquivo vem no corpo como application/octet-stream
+    // e o tipo real no cabeçalho — mesmo motivo do upload de áudio das mensagens.
+    "alerta-som": {
+        get: async (req, res) => {
+            await requirePermissao("config.manage").handle(req, res)
+
+            res.status(200).json(await alertaSons.listar())
+        },
+        post: async (req, res) => {
+            await requirePermissao("config.manage").handle(req, res)
+
+            const { rotulo, duracao_ms, id } = req.query
+
+            // renomear não manda arquivo: distingue pelo corpo estar vazio
+            if (id) {
+                res.status(200).json(await alertaSons.renomear(id, rotulo))
+                return
+            }
+
+            const contentType = (req.headers["x-som-content-type"] || req.headers["content-type"] || "")
+                .split(";")[0]
+                .trim()
+
+            res.status(200).json(await alertaSons.criar({
+                rotulo,
+                duracaoMs: duracao_ms,
+                buffer: Buffer.isBuffer(req.body) ? req.body : null,
+                contentType
+            }))
+        },
+        delete: async (req, res) => {
+            await requirePermissao("config.manage").handle(req, res)
+
+            res.status(200).json(await alertaSons.remover(req.query.id))
         }
     }
 }
