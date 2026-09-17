@@ -1,5 +1,7 @@
 import supabase from "../infra/supabase.js";
 import { ValidationError } from "../infra/errors.js";
+import evolution from "../infra/evolution.js";
+import enterprise from "./enterprise.js";
 
 const TABELA = "wa_message";
 
@@ -197,112 +199,106 @@ async function listMessages(sender, telefone) {
     return (data ?? []).map(mapMensagem).reverse();
 }
 
-/** Bucket público criado para os áudios da conversa — 16 MB, `audio/*`. */
-const BUCKET_AUDIO = "chat_audio";
+/** Teto do texto de uma mensagem — o mesmo que o WhatsApp aceita. */
+const LIMITE_TEXTO = 4096;
 
 /**
- * Tipos aceitos, e a extensão que cada um ganha no bucket.
+ * Grava a mensagem que ACABOU de sair.
  *
- * `audio/opus` primeiro porque é o que o WhatsApp usa em nota de voz. Os outros
- * entram porque o arquivo pode vir de qualquer lugar: o `MediaRecorder` do
- * navegador produz `webm`, e gravador de celular costuma dar `m4a` ou `mp3`.
+ * Não é redundância com o webhook: o Evolution **não** devolve pelo webhook o
+ * que foi enviado pela API dele. Quem envia é quem grava — é assim que o n8n
+ * faz com as respostas do robô.
  *
- * A lista existe mesmo o bucket já aceitando `audio/*`: recusar aqui devolve um
- * erro que diz o que fazer, enquanto a recusa do storage chega como um erro
- * genérico bem mais longe de quem clicou.
+ * `is_agent: false` é o que separa esta linha das do robô: na tela ela aparece
+ * com o selo "loja", que é exatamente o que ela é.
  */
-const TIPOS_AUDIO = {
-    "audio/opus": "opus",
-    "audio/ogg": "ogg",
-    "audio/webm": "webm",
-    "audio/mpeg": "mp3",
-    "audio/mp3": "mp3",
-    "audio/mp4": "m4a",
-    "audio/x-m4a": "m4a",
-    "audio/aac": "aac",
-    "audio/wav": "wav",
-    "audio/x-wav": "wav"
-};
+async function registrarEnviada({ sender, numero, texto, pushName }) {
+    const linha = {
+        sender,
+        client_phone: `${numero}@s.whatsapp.net`,
+        client_normalized_phone: numero,
+        message: texto,
+        message_type: "text",
+        from_me: true,
+        is_agent: false,
+        is_reply: true,
+        push_name: pushName ?? null,
+        // `message` e `sended_at` são NOT NULL na tabela
+        sended_at: new Date().toISOString()
+    };
+
+    const { data, error } = await supabase.from(TABELA).insert(linha).select(COLUNAS_MENSAGEM).single();
+
+    if (error) {
+        // A mensagem JÁ chegou ao cliente. Falhar aqui não pode virar "não
+        // enviei" na tela: o atendente mandaria de novo e o cliente receberia
+        // duas vezes. O que se perde é o histórico, e é o menor dos males.
+        console.error("Mensagem enviada mas não registrada em wa_message:", error);
+
+        return {
+            ...mapMensagem({ ...linha, id: null, created_at: new Date().toISOString() }),
+            registrada: false
+        };
+    }
+
+    return { ...mapMensagem(data), registrada: true };
+}
 
 /**
- * Sobe um áudio da loja para a conversa: arquivo no bucket, linha na tabela.
+ * Envia um texto da loja para o cliente pela instância configurada na empresa.
  *
- * A transcrição NÃO é preenchida aqui — quem transcreve é o n8n, fora deste
- * repo. A linha nasce com `transcription` nula e a tela mostra isso como
- * "transcrevendo…" até o n8n voltar e escrever.
- *
- * `is_agent` é false de propósito: quem mandou foi a loja, não o robô. É essa
- * coluna que faz o balão aparecer marcado como "loja" na conversa, e marcá-la
- * como robô poria na conta dele uma fala que não é dele.
+ * O robô continua respondendo esta conversa normalmente — silenciá-lo é outra
+ * decisão, tomada por número na `ignore_list` que o n8n lê.
  */
-async function uploadAudio(sender, telefone, buffer, contentType) {
+async function sendMessage(sender, telefone, texto) {
     const numero = apenasDigitos(telefone);
+    const mensagem = String(texto ?? "").trim();
 
     if (!sender) {
         throw new ValidationError("Informe o número de origem (sender)");
     }
 
     if (!numero) {
-        throw new ValidationError("Informe o telefone da conversa");
+        throw new ValidationError("Número do cliente inválido");
     }
 
-    if (!buffer || buffer.length === 0) {
-        throw new ValidationError("Arquivo vazio — envie o áudio como application/octet-stream");
+    if (!mensagem) {
+        throw new ValidationError("Escreva a mensagem antes de enviar");
     }
 
-    const extensao = TIPOS_AUDIO[contentType];
+    if (mensagem.length > LIMITE_TEXTO) {
+        throw new ValidationError(`A mensagem deve ter no máximo ${LIMITE_TEXTO} caracteres`);
+    }
 
-    if (!extensao) {
+    const { host, instancia, sender: senderConfigurado, nomeAtendente } =
+        await enterprise.getEvolutionConfig();
+
+    if (!instancia) {
         throw new ValidationError(
-            `Formato de áudio não aceito: ${contentType || "desconhecido"}. Use ${Object.keys(TIPOS_AUDIO).join(", ")}`
+            "A empresa não tem EvoInstance configurado — sem ela não há por qual conexão enviar."
         );
     }
 
-    // uma pasta por contato, e o instante no nome: dois envios no mesmo segundo
-    // ainda assim não se sobrescrevem por causa do sufixo aleatório
-    const caminho = `${numero}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}.${extensao}`;
-
-    const { error: erroUpload } = await supabase.storage
-        .from(BUCKET_AUDIO)
-        .upload(caminho, buffer, { contentType, upsert: false });
-
-    if (erroUpload) {
-        throw erroUpload;
+    /**
+     * A conversa aberta é de um número, e quem envia é a instância configurada
+     * agora. Quando os dois discordam — histórico de uma instância antiga — a
+     * mensagem sairia de um número e seria gravada como se fosse de outro, e a
+     * tela passaria a mentir sobre quem falou. Recusar é melhor que registrar
+     * errado: o cliente receberia de um número que não é o daquela conversa.
+     */
+    if (senderConfigurado && sender !== senderConfigurado) {
+        throw new ValidationError(
+            `Esta conversa é do número ${apenasDigitos(sender.split("@")[0])}, mas a conexão configurada hoje é ${apenasDigitos(senderConfigurado.split("@")[0])}. ` +
+            "A mensagem sairia de outro número — selecione a conversa do número atual."
+        );
     }
 
-    const { data: { publicUrl } } = supabase.storage.from(BUCKET_AUDIO).getPublicUrl(caminho);
+    // Envia PRIMEIRO: gravar antes deixaria no histórico uma mensagem que o
+    // cliente nunca recebeu, e é o histórico que o balcão usa para saber o que
+    // já foi dito.
+    await evolution.sendText(host, instancia, numero, mensagem);
 
-    const { data, error } = await supabase
-        .from(TABELA)
-        .insert({
-            sender,
-            client_phone: `${numero}@s.whatsapp.net`,
-            client_normalized_phone: numero,
-            from_me: true,
-            is_agent: false,
-            message_type: "audio",
-            media_url: publicUrl,
-            // `message` e `sended_at` são NOT NULL na tabela. Áudio não tem
-            // texto, então `message` vai vazia — o que foi dito aparece em
-            // `transcription`, escrita depois pelo n8n.
-            message: "",
-            // instante real em UTC. As linhas que o n8n grava trazem aqui o
-            // horário LOCAL como se fosse UTC (3h adiantado, ver mapMensagem);
-            // não reproduzo esse desvio de propósito — a tela ordena e exibe por
-            // `created_at`, que é confiável nas duas origens.
-            sended_at: new Date().toISOString()
-        })
-        .select(COLUNAS_MENSAGEM)
-        .single();
-
-    if (error) {
-        // sem isto o arquivo ficaria no bucket sem linha nenhuma apontando para
-        // ele — lixo que ninguém encontra depois para limpar
-        await supabase.storage.from(BUCKET_AUDIO).remove([caminho]);
-        throw error;
-    }
-
-    return mapMensagem(data);
+    return registrarEnviada({ sender, numero, texto: mensagem, pushName: nomeAtendente });
 }
 
-export default { listSenders, listConversations, listMessages, uploadAudio };
+export default { listSenders, listConversations, listMessages, sendMessage };

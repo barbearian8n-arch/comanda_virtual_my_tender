@@ -1,14 +1,9 @@
-import axios from "axios"
+import { createApiClient } from "./http"
 
 export class AgentAPI {
     constructor() {
         this.baseUrl = import.meta.env.VITE_API_URL
-        this.axios = axios.create({
-            baseURL: this.baseUrl,
-            headers: {
-                "Content-Type": "application/json"
-            }
-        })
+        this.axios = createApiClient()
     }
 
     async listSenders() {
@@ -31,25 +26,11 @@ export class AgentAPI {
         return response.data
     }
 
-    /**
-     * O arquivo sobe cru, como application/octet-stream, e o tipo real vai num
-     * cabeçalho à parte: mandado como Content-Type, o corpo seria interpretado
-     * em vez de chegar como Buffer no servidor.
-     */
-    async uploadAudio(sender, telefone, arquivo) {
-        const response = await this.axios.post(
-            `/ai/audio?sender=${encodeURIComponent(sender)}&telefone=${encodeURIComponent(telefone)}`,
-            arquivo,
-            {
-                headers: {
-                    "Content-Type": "application/octet-stream",
-                    "X-Audio-Content-Type": arquivo.type
-                }
-            }
-        )
+    async sendMessage(sender, telefone, texto) {
+        const response = await this.axios.post(`/ai/send`, { sender, telefone, texto })
 
         if (response.status !== 200) {
-            throw new Error("Erro ao enviar o áudio")
+            throw new Error("Erro ao enviar a mensagem")
         }
 
         return response.data

@@ -153,4 +153,62 @@ async function setSchedules(patch) {
     return montarSaida(data.config ?? {});
 }
 
-export default { getConfig, getSchedules, setSchedules, CAMPOS_AGENDA, DIAS };
+/**
+ * Onde a conexão de WhatsApp desta loja vive: host, instância e o número que
+ * responde por ela. É a MESMA chave `config.evolution` que o n8n lê, de
+ * propósito — duas fontes para isto significaria o painel enviando por uma
+ * instância e o robô por outra.
+ *
+ * A chave da API não está aqui: é segredo de ambiente (`EVO_KEY`), não dado de
+ * uma linha do banco.
+ */
+async function getEvolutionConfig() {
+    const { evolution } = (await getConfig()) ?? {};
+
+    const texto = (valor) => (typeof valor === "string" ? valor.trim() : "");
+
+    return {
+        host: texto(evolution?.EvoHost),
+        instancia: texto(evolution?.EvoInstance),
+        sender: texto(evolution?.EvoSender),
+        nomeAtendente: texto(evolution?.NomeAtendente) || null
+    };
+}
+
+/**
+ * Merge dentro de `config.evolution`, preservando as chaves que este painel não
+ * escreve mas o n8n lê (`EvoHost`, `GrupoBalanca`, `NomeAtendente`).
+ *
+ * `EvoSender` só deve ser sobrescrito com um JID de verdade — quem chama é que
+ * garante isso. Mandar null porque a instância está desconectada apagaria o
+ * discriminador do histórico e a tela de Mensagens ficaria vazia: a conversa
+ * antiga continua sendo daquele número mesmo com o WhatsApp fora do ar.
+ */
+async function setEvolutionConfig(patch) {
+    const config = await getConfig();
+    const evolution = { ...(config.evolution ?? {}), ...patch };
+
+    const { data, error } = await supabase
+        .from("enterprise")
+        .update({ config: { ...config, evolution } })
+        .eq("id", ENTERPRISE_ID)
+        .select("config")
+        .single();
+
+    if (error) {
+        throw error;
+    }
+
+    return data.config?.evolution ?? {};
+}
+
+export default {
+    getConfig,
+    getEvolutionConfig,
+    setEvolutionConfig,
+    getSchedules,
+    setSchedules,
+    ENTERPRISE_ID,
+    CAMPOS_AGENDA,
+    DIAS
+};

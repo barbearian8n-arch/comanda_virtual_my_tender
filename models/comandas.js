@@ -12,6 +12,9 @@ function mapComandaToAPI(comanda) {
         key: comanda.command_key,
         redis_key: `comanda/${comanda.command_key}`,
         status: comanda.command_status,
+        // a view já entrega; sem mapear, a lista não tinha como mostrar desde quando
+        // a comanda está aberta
+        created_at: comanda.command_created_at,
         client_endereco: comanda.client_endereco,
         client_valor_entrega: comanda.client_valor_entrega,
         delivery_address: comanda.delivery_address,
@@ -91,7 +94,18 @@ function mapCommandItemsToDB(items) {
  * @returns {Promise<APICommand[]>}
  */
 async function listCommands() {
-    const { data, error } = await supabase.schema("public").from("view_command_w_items").select("*");
+    // Mais recente primeiro, e no BANCO: sem `order`, o Postgres devolve na ordem
+    // que quiser, e ela muda conforme as linhas são atualizadas — a lista do
+    // balcão se reembaralhava sozinha entre uma recarga e outra.
+    //
+    // `command_id` desempata: duas comandas criadas no mesmo instante ficariam
+    // livres para trocar de lugar, que é o mesmo problema em menor escala.
+    const { data, error } = await supabase
+        .schema("public")
+        .from("view_command_w_items")
+        .select("*")
+        .order("command_created_at", { ascending: false })
+        .order("command_id", { ascending: false });
     if (error) {
         throw error;
     }

@@ -1,8 +1,15 @@
 import { createHandler } from "../infra/handlers.js";
 import produtos from "../models/produtos.js";
 import { v } from "../infra/validation/validator.js";
+import { requirePermissao } from "../infra/authMiddleware.js";
 
 const handler = createHandler();
+
+// O GET fica aberto: é o cardápio que o cliente final abre pelo link, sem conta.
+// Toda escrita exige cadastro — alterar preço é decisão da loja, não de quem vê.
+handler.middleware.post(requirePermissao("produto.manage"));
+handler.middleware.put(requirePermissao("produto.manage"));
+handler.middleware.delete(requirePermissao("produto.manage"));
 
 handler.middleware.get(
     v.middleware.query(

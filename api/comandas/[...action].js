@@ -2,6 +2,7 @@ import { createHandler } from "../../infra/handlers.js"
 import comandas from "../../models/comandas.js"
 import chat from "../../models/chat.js"
 import { MethodNotAllowedError, NotFoundError } from "../../infra/errors.js"
+import { requirePermissao } from "../../infra/authMiddleware.js"
 
 const handler = createHandler()
 
@@ -23,6 +24,8 @@ const actions = {
     },
     "delivery-fee": {
         post: async (req, res) => {
+            await requirePermissao("comanda.manage").handle(req, res)
+
             const { key, value } = req.body
 
             await comandas.updateDeliveryFee(key, value)
@@ -34,6 +37,8 @@ const actions = {
     },
     finish: {
         post: async (req, res) => {
+            await requirePermissao("comanda.manage").handle(req, res)
+
             const { key } = req.body
 
             await comandas.finishComanda(key)
@@ -46,6 +51,8 @@ const actions = {
     // Também altera delivery_fee, por um caminho diferente do `delivery-fee`.
     values: {
         post: async (req, res) => {
+            await requirePermissao("comanda.manage").handle(req, res)
+
             const { key, delivery_fee, total_real_price } = req.body
 
             await comandas.updateComandaValues(key, { delivery_fee, total_real_price })
@@ -59,6 +66,8 @@ const actions = {
     },
     weights: {
         post: async (req, res) => {
+            await requirePermissao("comanda.manage").handle(req, res)
+
             const { key, items } = req.body
 
             await comandas.updateCommandItems(items)

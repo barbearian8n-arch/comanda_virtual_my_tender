@@ -1,6 +1,7 @@
 import { createHandler } from "../../infra/handlers.js"
 import produtos from "../../models/produtos.js"
 import { MethodNotAllowedError, NotFoundError } from "../../infra/errors.js"
+import { requirePermissao } from "../../infra/authMiddleware.js"
 
 const handler = createHandler()
 
@@ -10,6 +11,8 @@ const handler = createHandler()
 const actions = {
     embedding: {
         post: async (req, res) => {
+            await requirePermissao("produto.manage").handle(req, res)
+
             const { id } = req.body
 
             await produtos.updateEmbedding(id)

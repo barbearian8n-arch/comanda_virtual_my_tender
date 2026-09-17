@@ -1,5 +1,6 @@
 import { createHandler } from "../infra/handlers.js";
 import comandas from "../models/comandas.js";
+import { requirePermissao } from "../infra/authMiddleware.js";
 
 const handler = createHandler();
 
@@ -17,6 +18,12 @@ handler.get(async (req, res) => {
         res.status(200).json(comanda);
         return;
     }
+
+    // A listagem geral é a tela do balcão e mostra TODOS os clientes — só com
+    // login. As duas consultas acima ficam abertas porque são o fluxo do cliente
+    // final: o link /cliente/:id é a credencial dele, e a chave da comanda é a
+    // credencial de quem está com o carrinho aberto.
+    await requirePermissao("comanda.manage").handle(req, res);
 
     const comandasList = await comandas.listCommands();
     res.status(200).json(comandasList);

@@ -1,14 +1,9 @@
-import axios from "axios"
+import { createApiClient } from "./http"
 
 export class ProdutosAPI {
     constructor() {
         this.baseUrl = import.meta.env.VITE_API_URL
-        this.axios = axios.create({
-            baseURL: this.baseUrl,
-            headers: {
-                "Content-Type": "application/json"
-            }
-        })
+        this.axios = createApiClient()
     }
 
     async getProdutos(page = 0, limit = 10, filters = {}) {

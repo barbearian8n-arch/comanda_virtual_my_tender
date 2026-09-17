@@ -46,6 +46,22 @@ export class ValidationError extends ApiError {
     }
 }
 
+/**
+ * O pedido é válido, mas o estado atual não permite atendê-lo — diferente do
+ * 400, que é "você mandou errado". Ex.: remover a conexão principal, ou o
+ * webhook não ter ficado gravado como pedido.
+ */
+export class ConflictError extends ApiError {
+    constructor(message, cause) {
+        super(message, {
+            name: "ConflictError",
+            code: "conflict",
+            statusCode: 409,
+            cause
+        });
+    }
+}
+
 export class MethodNotAllowedError extends ApiError {
     constructor(message, cause) {
         super(message, {

@@ -1,103 +1,144 @@
-import { useState } from "react"
-import { Link, useNavigate } from "react-router-dom"
+import { useEffect, useState } from "react"
+import { useNavigate, useLocation } from "react-router-dom"
 import toast from "react-hot-toast"
-import { authService } from "../services/auth.mock"
+import { useAuth } from "../context/useAuth"
+import { authStatus, register } from "../services/auth"
 
-export default function Login() {
-    const [email, setEmail] = useState("")
-    const [password, setPassword] = useState("")
-    const [loading, setLoading] = useState(false)
+export default function PageLogin() {
+    const { usuario, entrar } = useAuth()
     const navigate = useNavigate()
+    const location = useLocation()
 
-    async function handleSubmit(e) {
-        e.preventDefault()
-        
-        if (!email || !password) {
-            toast.error("Preencha todos os campos")
-            return
+    const [email, setEmail] = useState("")
+    const [senha, setSenha] = useState("")
+    const [nome, setNome] = useState("")
+    const [enviando, setEnviando] = useState(false)
+
+    /**
+     * Loja sem nenhum usuário: a tela vira cadastro do primeiro acesso.
+     *
+     * `null` enquanto não se sabe — desenhar "entrar" e trocar para "criar conta"
+     * depois da resposta faria a tela saltar na frente de quem já está digitando.
+     */
+    const [precisaCadastro, setPrecisaCadastro] = useState(null)
+
+    const destino = location.state?.de ?? "/"
+
+    useEffect(() => {
+        authStatus()
+            .then((s) => setPrecisaCadastro(s.precisa_cadastro))
+            .catch(() => setPrecisaCadastro(false))
+    }, [])
+
+    // já logado não tem o que fazer aqui
+    useEffect(() => {
+        if (usuario) {
+            navigate(destino, { replace: true })
         }
+    }, [usuario, destino, navigate])
 
+    async function enviar(evento) {
+        evento.preventDefault()
+
+        if (enviando) return
+
+        setEnviando(true)
         try {
-            setLoading(true)
-            const response = await authService.login(email, password)
-            toast.success(`Bem-vindo, ${response.user.name}!`)
-            
-            localStorage.setItem('user', JSON.stringify(response.user))
-            
-            window.location.href = "/" // Reloads app to update header state
+            if (precisaCadastro) {
+                await register({ nome, email, senha })
+                toast.success("Conta de admin criada")
+            }
+
+            await entrar(email, senha)
+            navigate(destino, { replace: true })
         } catch (error) {
-            toast.error(error.message || "Erro ao fazer login")
+            toast.error(error.response?.data?.message || error.message)
         } finally {
-            setLoading(false)
+            setEnviando(false)
         }
     }
 
     return (
-        <div className="container py-5 d-flex justify-content-center align-items-center" style={{ minHeight: '80vh' }}>
-            <div className="card shadow-sm border-0 w-100" style={{ maxWidth: '400px', borderRadius: '1rem' }}>
-                <div className="card-body p-4 p-md-5">
-                    <div className="text-center mb-4">
-                        <div className="bg-danger text-white d-inline-flex justify-content-center align-items-center mb-3" style={{ width: '60px', height: '60px', borderRadius: '50%' }}>
-                            <i className="bi bi-box-arrow-in-right fs-2"></i>
-                        </div>
-                        <h2 className="fw-bold mb-1">Entrar</h2>
-                        <p className="text-muted small">Acesse sua conta para continuar</p>
-                    </div>
+        <div className="page-content d-flex justify-content-center">
+            <div style={{ maxWidth: 380, width: "100%" }}>
+                <div className="text-center mb-4 mt-4">
+                    <h4 className="fw-bold mb-1">
+                        {precisaCadastro ? "Primeiro acesso" : "Entrar"}
+                    </h4>
+                    <p className="subtitle mb-0">
+                        {precisaCadastro
+                            ? "Esta loja ainda não tem nenhuma conta. A primeira nasce como admin."
+                            : "Painel da loja"}
+                    </p>
+                </div>
 
-                    <form onSubmit={handleSubmit}>
-                        <div className="mb-3">
-                            <label className="form-label small fw-semibold text-muted">Email</label>
-                            <div className="input-group drop-shadow-sm">
-                                <span className="input-group-text bg-light border-end-0">
-                                    <i className="bi bi-envelope text-muted"></i>
-                                </span>
-                                <input 
-                                    type="email" 
-                                    className="form-control bg-light border-start-0 ps-0" 
-                                    placeholder="seu@email.com"
-                                    value={email}
-                                    onChange={e => setEmail(e.target.value)}
+                <form onSubmit={enviar} className="card border-0 shadow-sm">
+                    <div className="card-body">
+                        {precisaCadastro && (
+                            <div className="mb-3">
+                                <label htmlFor="nome" className="form-label small fw-bold text-muted">
+                                    Seu nome
+                                </label>
+                                <input
+                                    id="nome"
+                                    type="text"
+                                    className="form-control"
+                                    value={nome}
+                                    onChange={(e) => setNome(e.target.value)}
+                                    autoComplete="name"
                                 />
                             </div>
+                        )}
+
+                        <div className="mb-3">
+                            <label htmlFor="email" className="form-label small fw-bold text-muted">
+                                E-mail
+                            </label>
+                            <input
+                                id="email"
+                                type="email"
+                                className="form-control"
+                                value={email}
+                                onChange={(e) => setEmail(e.target.value)}
+                                autoComplete="username"
+                                required
+                            />
                         </div>
 
-                        <div className="mb-4">
-                            <label className="form-label small fw-semibold text-muted d-flex justify-content-between">
+                        <div className="mb-3">
+                            <label htmlFor="senha" className="form-label small fw-bold text-muted">
                                 Senha
                             </label>
-                            <div className="input-group drop-shadow-sm">
-                                <span className="input-group-text bg-light border-end-0">
-                                    <i className="bi bi-lock text-muted"></i>
-                                </span>
-                                <input 
-                                    type="password" 
-                                    className="form-control bg-light border-start-0 ps-0" 
-                                    placeholder="••••••••"
-                                    value={password}
-                                    onChange={e => setPassword(e.target.value)}
-                                />
-                            </div>
+                            <input
+                                id="senha"
+                                type="password"
+                                className="form-control"
+                                value={senha}
+                                onChange={(e) => setSenha(e.target.value)}
+                                autoComplete={precisaCadastro ? "new-password" : "current-password"}
+                                required
+                            />
+                            {precisaCadastro && (
+                                <div className="form-text">Mínimo de 8 caracteres.</div>
+                            )}
                         </div>
 
-                        <button 
-                            type="submit" 
-                            className="btn btn-danger w-100 py-2 rounded-pill fw-bold mb-3 shadow-sm"
-                            disabled={loading}
+                        <button
+                            type="submit"
+                            className="btn btn-danger fw-bold w-100"
+                            disabled={enviando || precisaCadastro === null}
                         >
-                            {loading ? (
-                                <span className="spinner-border spinner-border-sm me-2" />
+                            {enviando ? (
+                                <>
+                                    <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                                    {precisaCadastro ? "Criando…" : "Entrando…"}
+                                </>
                             ) : (
-                                "Entrar"
+                                precisaCadastro ? "Criar conta de admin" : "Entrar"
                             )}
                         </button>
-                    </form>
-
-                    <div className="text-center mt-4">
-                        <p className="text-muted small mb-0">
-                            Não tem uma conta? <Link to="/register" className="text-danger fw-semibold text-decoration-none">Crie agora</Link>
-                        </p>
                     </div>
-                </div>
+                </form>
             </div>
         </div>
     )
