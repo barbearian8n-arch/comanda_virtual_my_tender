@@ -3,7 +3,7 @@ import { useSearchParams } from "react-router-dom"
 import { useRequest } from "../hooks/useRequest"
 import { getProdutos, getCategorias } from "../services/produtos"
 import { HandleResponse } from "../components/HandleResponse"
-import { displayPrice, displayUnitLabel, formatPrice, getDisplayUnit, getValidDisplayUnits } from "../utils/formatters"
+import { displayPrice, displayUnitLabel, formatPrice, getDisplayUnit } from "../utils/formatters"
 import ModalAdicionarItem from "../components/ModalAdicionarItem"
 import DrawerCarrinho from "../components/DrawerCarrinho"
 import { resolverCategorias, TODOS } from "../utils/categorias"
@@ -38,6 +38,31 @@ export default function PageCardapio() {
         }
     }, [categoriasResponse.data, urlCategoria, setSearchParams])
 
+    // Busca com debounce: digitar filtra o cardapio inteiro, nao so a categoria
+    // aberta — por isso o salto para "todos" assim que ha texto.
+    const handleSearchChange = useCallback((e) => {
+        const value = e.target.value
+        setSearchTerm(value)
+        if (debounceRef.current) clearTimeout(debounceRef.current)
+        debounceRef.current = setTimeout(() => {
+            setDebouncedSearch(value)
+            if (value.trim()) {
+                setSearchParams({ categoria: TODOS })
+            }
+        }, 350)
+    }, [setSearchParams])
+
+    useEffect(() => () => {
+        if (debounceRef.current) clearTimeout(debounceRef.current)
+    }, [])
+
+    const handleCategoriaClick = useCallback((cat) => {
+        setSearchTerm("")
+        setDebouncedSearch("")
+        if (debounceRef.current) clearTimeout(debounceRef.current)
+        setSearchParams({ categoria: cat })
+    }, [setSearchParams])
+
     /**
      * O que veio na URL nem sempre é o nome exato de uma categoria: o robô manda
      * links como `?categoria=pizza`, em texto corrido. `resolverCategorias`
@@ -57,7 +82,7 @@ export default function PageCardapio() {
     // espera as categorias chegarem: resolver contra lista vazia daria "nenhuma"
     // e dispararia uma busca a mais, que seria refeita assim que elas chegassem
     const pronto = urlCategoria !== null && listaCategorias !== null
-    const requestDependency = pronto ? (filtroServidor || TODOS) : "waiting"
+    const requestDependency = pronto ? `${filtroServidor || TODOS}|${debouncedSearch}` : "waiting"
 
     const response = useRequest(async () => {
         if (!pronto) return Promise.resolve([])
@@ -65,6 +90,9 @@ export default function PageCardapio() {
         const filters = {}
         if (filtroServidor) {
             filters.categoria = filtroServidor
+        }
+        if (debouncedSearch.trim()) {
+            filters.nome = debouncedSearch.trim()
         }
 
         return getProdutos(0, -1, filters)
