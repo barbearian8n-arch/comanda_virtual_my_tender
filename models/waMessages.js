@@ -13,7 +13,17 @@ const TABELA = "wa_message";
  */
 const JANELA_CONVERSAS = 1000;
 
-/** Teto de mensagens de uma conversa. */
+/**
+ * Quantas mensagens por página da conversa.
+ *
+ * A thread carrega em pedaços e vai buscando as antigas conforme a pessoa rola
+ * para cima. Antes vinham 300 de uma vez: funciona com as conversas de hoje (a
+ * maior tem 73), mas o custo cresce junto com o histórico, e quem abre a tela
+ * quer ler as ÚLTIMAS — as de meses atrás quase nunca são olhadas.
+ */
+const PAGINA_THREAD = 30;
+
+/** Teto por requisição, para um `limite` vindo de fora não virar um "traga tudo". */
 const LIMITE_THREAD = 300;
 
 /** Janela para descobrir os remetentes. Só uma coluna estreita, então cabe mais. */
@@ -175,28 +185,56 @@ async function buscarNomesDeClientes(telefones) {
     return new Map((data ?? []).map((cliente) => [apenasDigitos(cliente.numero), cliente.name]));
 }
 
-/** A conversa com um contato, em ordem cronológica. */
-async function listMessages(sender, telefone) {
+/**
+ * Uma página da conversa, em ordem cronológica.
+ *
+ * `antesDoId` é o cursor: manda o id da mensagem mais antiga já carregada para
+ * receber as anteriores a ela. Cursor, e não `offset`, porque a conversa recebe
+ * mensagem nova enquanto a pessoa lê — com offset, cada chegada empurra a
+ * janela e a página seguinte viria repetindo ou pulando linhas.
+ *
+ * Pagina por `id` e não por `created_at`: os dois dão a mesma ordem (conferido
+ * sobre a tabela inteira), mas `id` é único, e `created_at` repetido entre duas
+ * mensagens deixaria o cursor ambíguo — a fronteira da página poderia repetir
+ * uma linha ou engolir outra.
+ *
+ * Devolve `tem_mais` para a tela saber se ainda vale pedir. Vem de buscar UM
+ * registro além da página: contar o total custaria uma segunda consulta para
+ * responder algo que essa linha extra já responde.
+ */
+async function listMessages(sender, telefone, { antesDoId = null, limite = PAGINA_THREAD } = {}) {
     const numero = apenasDigitos(telefone);
 
     if (!sender || !numero) {
-        return [];
+        return { mensagens: [], tem_mais: false };
     }
 
-    const { data, error } = await supabase
+    const tamanho = Math.min(Math.max(Number(limite) || PAGINA_THREAD, 1), LIMITE_THREAD);
+
+    let consulta = supabase
         .from(TABELA)
         .select(COLUNAS_MENSAGEM)
         .eq("sender", sender)
         .eq("client_normalized_phone", numero)
-        .order("created_at", { ascending: false })
-        .limit(LIMITE_THREAD);
+        .order("id", { ascending: false })
+        .limit(tamanho + 1);
+
+    if (antesDoId != null) {
+        consulta = consulta.lt("id", antesDoId);
+    }
+
+    const { data, error } = await consulta;
 
     if (error) {
         throw error;
     }
 
-    // busca desc para o teto pegar as MAIS RECENTES, exibe asc
-    return (data ?? []).map(mapMensagem).reverse();
+    const linhas = data ?? [];
+    const tem_mais = linhas.length > tamanho;
+    const pagina = tem_mais ? linhas.slice(0, tamanho) : linhas;
+
+    // busca desc para a página pegar as MAIS RECENTES, exibe asc
+    return { mensagens: pagina.map(mapMensagem).reverse(), tem_mais };
 }
 
 /** Teto do texto de uma mensagem — o mesmo que o WhatsApp aceita. */

@@ -202,9 +202,226 @@ async function setEvolutionConfig(patch) {
     return data.config?.evolution ?? {};
 }
 
+/**
+ * Quais avisos em tempo real o balcão recebe.
+ *
+ * Fica em `enterprise.config` e não em tabela nova: são três chaves por empresa,
+ * sem histórico e sem consulta própria — uma tabela aqui só acrescentaria um
+ * join a cada leitura.
+ *
+ * `nova_mensagem` nasce DESLIGADA de propósito: com o robô respondendo, toda
+ * conversa de cliente viraria um alerta, e enxurrada de aviso ensina o balcão a
+ * ignorar aviso. Fica a um clique de ser ligada por quem quiser.
+ */
+const NOTIFICACOES_DEFAULTS = {
+    comanda_criada: { ligado: true, severidade: "info", confirmar: false },
+    comanda_fechada: { ligado: true, severidade: "atencao", confirmar: true },
+    nova_mensagem: { ligado: false, severidade: "info", confirmar: false }
+};
+
+const SEVERIDADES_VALIDAS = ["info", "sucesso", "atencao", "urgente"];
+
+/**
+ * Normaliza para o formato completo. O que veio do banco pode ser de uma versão
+ * anterior, ter evento que não existe mais ou vir pela metade; o balcão não pode
+ * deixar de ser avisado por causa de uma chave torta.
+ */
+function mesclarNotificacoes(guardado) {
+    const origem = guardado && typeof guardado === "object" ? guardado : {};
+    const saida = {};
+
+    for (const [id, padrao] of Object.entries(NOTIFICACOES_DEFAULTS)) {
+        const atual = origem[id] && typeof origem[id] === "object" ? origem[id] : {};
+
+        saida[id] = {
+            ligado: atual.ligado === undefined ? padrao.ligado : Boolean(atual.ligado),
+            severidade: SEVERIDADES_VALIDAS.includes(atual.severidade) ? atual.severidade : padrao.severidade,
+            confirmar: atual.confirmar === undefined ? padrao.confirmar : Boolean(atual.confirmar)
+        };
+    }
+
+    return saida;
+}
+
+/**
+ * Som dos alertas: volume, timbres, insistência, sirene.
+ *
+ * É da EMPRESA, e não do navegador. Guardado em localStorage, limpar o cache ou
+ * trocar o tablet zerava tudo, e o gerente não conseguia ajustar uma vez para a
+ * loja inteira.
+ *
+ * O formato é validado no cliente (`src/services/alertasConfig.js`), que é quem
+ * conhece os timbres e os modos. Aqui só se garante o que o balcão não pode
+ * perder por um valor torto: número é número, e o volume cabe na escala. Timbre
+ * que não existe mais o cliente troca pelo padrão ao ler.
+ */
+const ALERTAS_DEFAULTS = {
+    somLigado: true,
+    volume: 60,
+    duracaoMs: 6000,
+    posicao: "topo-direita",
+    repetirPendenciaMs: 10000,
+    sirene: "nunca",
+    timbreSirene: "suave",
+    // `atencao` e não "crescente": o v2 traz "crescente" aqui, mas esse timbre não
+    // existe no catálogo dele nem no nosso — caía no toque reserva em silêncio,
+    // e "comanda fechada" (severidade atencao, ligada por padrão) soava como um
+    // bipe curto qualquer em vez do som de atenção.
+    timbres: { info: "toque", sucesso: "positivo", atencao: "atencao", urgente: "urgente" }
+};
+
+const LIMITES_ALERTAS = {
+    volume: [0, 100],
+    duracaoMs: [1500, 60000],
+    repetirPendenciaMs: [0, 300000]
+};
+
+function numeroEntre(campo, valor, padrao) {
+    const [minimo, maximo] = LIMITES_ALERTAS[campo];
+    const numero = Number(valor);
+
+    if (!Number.isFinite(numero)) {
+        return padrao;
+    }
+
+    return Math.min(maximo, Math.max(minimo, Math.round(numero)));
+}
+
+function textoOu(valor, padrao) {
+    return typeof valor === "string" && valor.trim() ? valor.trim() : padrao;
+}
+
+function mesclarAlertas(guardado) {
+    const origem = guardado && typeof guardado === "object" ? guardado : {};
+    const timbresOrigem = origem.timbres && typeof origem.timbres === "object" ? origem.timbres : {};
+
+    const timbres = {};
+    for (const [severidade, padrao] of Object.entries(ALERTAS_DEFAULTS.timbres)) {
+        timbres[severidade] = textoOu(timbresOrigem[severidade], padrao);
+    }
+
+    return {
+        somLigado: origem.somLigado === undefined ? ALERTAS_DEFAULTS.somLigado : Boolean(origem.somLigado),
+        volume: numeroEntre("volume", origem.volume, ALERTAS_DEFAULTS.volume),
+        duracaoMs: numeroEntre("duracaoMs", origem.duracaoMs, ALERTAS_DEFAULTS.duracaoMs),
+        posicao: textoOu(origem.posicao, ALERTAS_DEFAULTS.posicao),
+        repetirPendenciaMs: numeroEntre("repetirPendenciaMs", origem.repetirPendenciaMs, ALERTAS_DEFAULTS.repetirPendenciaMs),
+        sirene: textoOu(origem.sirene, ALERTAS_DEFAULTS.sirene),
+        timbreSirene: textoOu(origem.timbreSirene, ALERTAS_DEFAULTS.timbreSirene),
+        timbres
+    };
+}
+
+async function getAlertasConfig() {
+    return mesclarAlertas((await getConfig()).alertas);
+}
+
+/** Merge dentro de `config.alertas`, preservando `evolution`, `schedule_*` e o resto. */
+async function setAlertasConfig(patch) {
+    const config = await getConfig();
+    const atual = mesclarAlertas(config.alertas);
+
+    const alertas = mesclarAlertas({
+        ...atual,
+        ...(patch ?? {}),
+        timbres: { ...atual.timbres, ...(patch?.timbres ?? {}) }
+    });
+
+    const { data, error } = await supabase
+        .from("enterprise")
+        .update({ config: { ...config, alertas } })
+        .eq("id", ENTERPRISE_ID)
+        .select("config")
+        .single();
+
+    if (error) {
+        throw error;
+    }
+
+    return mesclarAlertas(data.config?.alertas);
+}
+
+async function getNotificacoesConfig() {
+    return mesclarNotificacoes((await getConfig()).notificacoes);
+}
+
+/** `patch` é parcial nos dois níveis: `{ nova_mensagem: { ligado: true } }` vale. */
+async function setNotificacoesConfig(patch) {
+    const config = await getConfig();
+    const atual = mesclarNotificacoes(config.notificacoes);
+
+    const proximo = { ...atual };
+
+    for (const [id, mudancas] of Object.entries(patch ?? {})) {
+        if (!NOTIFICACOES_DEFAULTS[id]) {
+            continue;
+        }
+
+        proximo[id] = { ...atual[id], ...mudancas };
+    }
+
+    const notificacoes = mesclarNotificacoes(proximo);
+
+    const { data, error } = await supabase
+        .from("enterprise")
+        .update({ config: { ...config, notificacoes } })
+        .eq("id", ENTERPRISE_ID)
+        .select("config")
+        .single();
+
+    if (error) {
+        throw error;
+    }
+
+    return mesclarNotificacoes(data.config?.notificacoes);
+}
+
+/**
+ * Troca pelo padrão todo timbre que aponte para `timbreId`.
+ *
+ * Chamado quando um som enviado é excluído. Sem isto a preferência continuaria
+ * apontando para um arquivo que não existe mais: o balcão cairia no timbre
+ * reserva do motor de som e a tela de configuração mostraria um seletor em
+ * branco — dois jeitos de a pessoa não entender por que o alerta mudou.
+ */
+async function removerTimbre(timbreId) {
+    const atual = await getAlertasConfig();
+    const patch = {};
+
+    if (atual.timbreSirene === timbreId) {
+        patch.timbreSirene = ALERTAS_DEFAULTS.timbreSirene;
+    }
+
+    const timbres = {};
+
+    for (const [severidade, valor] of Object.entries(atual.timbres)) {
+        if (valor === timbreId) {
+            timbres[severidade] = ALERTAS_DEFAULTS.timbres[severidade];
+        }
+    }
+
+    if (Object.keys(timbres).length > 0) {
+        patch.timbres = timbres;
+    }
+
+    // nada apontava para o som: poupa a gravação e o merge no jsonb compartilhado
+    if (Object.keys(patch).length === 0) {
+        return atual;
+    }
+
+    return setAlertasConfig(patch);
+}
+
 export default {
     getConfig,
     getEvolutionConfig,
+    getAlertasConfig,
+    setAlertasConfig,
+    getNotificacoesConfig,
+    setNotificacoesConfig,
+    removerTimbre,
+    ALERTAS_DEFAULTS,
+    NOTIFICACOES_DEFAULTS,
     setEvolutionConfig,
     getSchedules,
     setSchedules,

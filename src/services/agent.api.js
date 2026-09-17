@@ -36,9 +36,11 @@ export class AgentAPI {
         return response.data
     }
 
-    async listMessages(sender, telefone) {
+    async listMessages(sender, telefone, antesDoId = null) {
+        const cursor = antesDoId != null ? `&antes_de=${encodeURIComponent(antesDoId)}` : ""
+
         const response = await this.axios.get(
-            `/ai/messages?sender=${encodeURIComponent(sender)}&telefone=${encodeURIComponent(telefone)}`
+            `/ai/messages?sender=${encodeURIComponent(sender)}&telefone=${encodeURIComponent(telefone)}${cursor}`
         )
 
         if (response.status !== 200) {

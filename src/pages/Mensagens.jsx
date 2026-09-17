@@ -14,6 +14,9 @@ const ALTURA_PAINEL = "65vh"
 /** Distância do fim ainda considerada "no fim" — evita brigar com o scroll suave. */
 const FOLGA_FIM = 60
 
+/** A que distância do topo já vale buscar as mensagens anteriores. */
+const FOLGA_TOPO = 120
+
 /**
  * A busca só faz sentido depois que um número de origem foi escolhido. Sem esta
  * guarda, o primeiro render (antes do `<select>` ter valor) dispararia uma
@@ -230,11 +233,23 @@ function Balao({ mensagem }) {
     )
 }
 
-function Conversa({ telefone, nome, mensagens, carregando, onVoltar, onEnviarMensagem }) {
+function Conversa({
+    telefone, nome, mensagens, carregando, temMais, carregandoAntigas,
+    onVoltar, onEnviarMensagem, onCarregarAntigas
+}) {
     const painelRef = useRef(null)
     const noFimRef = useRef(true)
     const telefoneRenderizadoRef = useRef(null)
     const [mostrarBotaoFim, setMostrarBotaoFim] = useState(false)
+
+    /**
+     * Onde a rolagem estava quando o pedido das antigas saiu.
+     *
+     * Mensagem inserida no TOPO empurra todo o resto para baixo: sem devolver a
+     * rolagem ao mesmo conteúdo, a pessoa é arrastada para longe da linha que
+     * estava lendo — exatamente no momento em que ela foi buscar contexto.
+     */
+    const ancoraRef = useRef(null)
     const [enviando, setEnviando] = useState(false)
     const [texto, setTexto] = useState("")
 
@@ -269,6 +284,11 @@ function Conversa({ telefone, nome, mensagens, carregando, onVoltar, onEnviarMen
 
         noFimRef.current = noFim
         setMostrarBotaoFim(!noFim)
+
+        if (painel.scrollTop <= FOLGA_TOPO && temMais && !carregandoAntigas) {
+            ancoraRef.current = { altura: painel.scrollHeight, topo: painel.scrollTop }
+            onCarregarAntigas()
+        }
     }
 
     function irParaOFim(suave = true) {
@@ -293,6 +313,16 @@ function Conversa({ telefone, nome, mensagens, carregando, onVoltar, onEnviarMen
 
         const trocouConversa = telefoneRenderizadoRef.current !== telefone
         telefoneRenderizadoRef.current = telefone
+
+        // chegaram antigas no topo: devolve a rolagem ao mesmo conteúdo, medindo
+        // o quanto a altura cresceu. Precede a âncora do fim porque quem está
+        // lendo o histórico não quer ser jogado para a última mensagem.
+        if (!trocouConversa && ancoraRef.current) {
+            const { altura, topo } = ancoraRef.current
+            ancoraRef.current = null
+            painel.scrollTop = painel.scrollHeight - altura + topo
+            return
+        }
 
         if (trocouConversa || noFimRef.current) {
             painel.scrollTop = painel.scrollHeight
@@ -338,6 +368,21 @@ function Conversa({ telefone, nome, mensagens, carregando, onVoltar, onEnviarMen
                     style={{ height: ALTURA_PAINEL, overflowY: "auto" }}
                 >
                     {carregando && <Loading />}
+
+                    {!carregando && carregandoAntigas && (
+                        <div className="text-center text-muted py-2" style={{ fontSize: ".75rem" }}>
+                            <span className="spinner-border spinner-border-sm me-2" role="status"></span>
+                            Carregando mensagens anteriores…
+                        </div>
+                    )}
+
+                    {/* só depois de ter subido: dizer "início" numa conversa que
+                        acabou de abrir seria mentira, o histórico ainda não veio */}
+                    {!carregando && !temMais && !carregandoAntigas && comDias.length > 0 && (
+                        <div className="text-center text-muted py-2" style={{ fontSize: ".72rem" }}>
+                            Início da conversa
+                        </div>
+                    )}
 
                     {!carregando && comDias.length === 0 && (
                         <div className="text-center text-muted py-5">Nenhuma mensagem nesta conversa.</div>
@@ -422,7 +467,15 @@ export default function PageMensagens() {
 
     const [busca, setBusca] = useState("")
     const [selecionada, setSelecionada] = useState(null)
-    const [thread, setThread] = useState({ telefone: null, mensagens: [] })
+    const [thread, setThread] = useState({ telefone: null, mensagens: [], temMais: false })
+    const [carregandoAntigas, setCarregandoAntigas] = useState(false)
+
+    // lido por `carregarAntigas`, que precisa ser estável: se dependesse de
+    // `thread`, mudaria a cada mensagem nova e reprogramaria o auto-refresh
+    const threadRef = useRef(thread)
+    useEffect(() => {
+        threadRef.current = thread
+    }, [thread])
 
     const selecionadaRef = useRef(null)
 
@@ -435,24 +488,84 @@ export default function PageMensagens() {
 
     const carregandoThread = Boolean(selecionada) && thread.telefone !== selecionada
 
-    const carregarThread = useCallback(async (telefone) => {
+    const carregarThread = useCallback(async (telefone, { mesclar = false } = {}) => {
         if (!telefone || !senderRef.current) return
 
         const senderDaBusca = senderRef.current
 
         try {
-            const mensagens = await listMessages(senderDaBusca, telefone)
+            const { mensagens, tem_mais } = await listMessages(senderDaBusca, telefone)
 
             // a pessoa pode ter trocado de conversa — ou de número de origem —
             // enquanto isto voltava
-            if (selecionadaRef.current === telefone && senderRef.current === senderDaBusca) {
-                setThread({ telefone, mensagens })
-            }
+            if (selecionadaRef.current !== telefone || senderRef.current !== senderDaBusca) return
+
+            setThread((anterior) => {
+                /**
+                 * Recarga de fundo: junta a página nova ao que já estava na tela.
+                 *
+                 * Trocar tudo pela primeira página descartaria o histórico que a
+                 * pessoa acabou de puxar rolando para cima — a cada minuto ela
+                 * seria devolvida ao começo sem ter pedido nada.
+                 */
+                if (mesclar && anterior.telefone === telefone) {
+                    const porId = new Map(anterior.mensagens.map((m) => [m.id, m]))
+                    for (const m of mensagens) porId.set(m.id, m)
+
+                    return {
+                        telefone,
+                        mensagens: [...porId.values()].sort((a, b) => a.id - b.id),
+                        // `tem_mais` aqui fala da primeira página; o que já foi
+                        // carregado antes dela é quem sabe se ainda há mais atrás
+                        temMais: anterior.temMais
+                    }
+                }
+
+                return { telefone, mensagens, temMais: tem_mais }
+            })
         } catch (error) {
             if (selecionadaRef.current !== telefone) return
 
             toast.error(error.response?.data?.message || error.message)
-            setThread({ telefone, mensagens: [] })
+            setThread({ telefone, mensagens: [], temMais: false })
+        }
+    }, [])
+
+    /** A página anterior à mais antiga que está na tela. */
+    const carregarAntigas = useCallback(async () => {
+        const telefone = selecionadaRef.current
+        const sender = senderRef.current
+        const atual = threadRef.current
+
+        if (!telefone || !sender || !atual.temMais) return
+
+        const maisAntiga = atual.mensagens[0]
+        if (!maisAntiga) return
+
+        setCarregandoAntigas(true)
+        try {
+            const { mensagens, tem_mais } = await listMessages(sender, telefone, maisAntiga.id)
+
+            if (selecionadaRef.current !== telefone || senderRef.current !== sender) return
+
+            setThread((anterior) => {
+                if (anterior.telefone !== telefone) return anterior
+
+                // dedupe por id: uma mensagem na fronteira das páginas apareceria
+                // duas vezes, e o React reclamaria da chave repetida
+                const porId = new Map(mensagens.map((m) => [m.id, m]))
+                for (const m of anterior.mensagens) porId.set(m.id, m)
+
+                return {
+                    telefone,
+                    mensagens: [...porId.values()].sort((a, b) => a.id - b.id),
+                    temMais: tem_mais
+                }
+            })
+        } catch (error) {
+            toast.error(error.response?.data?.message || error.message)
+        } finally {
+            setCarregandoAntigas(false)
         }
     }, [])
 
@@ -476,7 +589,7 @@ export default function PageMensagens() {
     function trocarSender(novo) {
         selecionadaRef.current = null
         setSelecionada(null)
-        setThread({ telefone: null, mensagens: [] })
+        setThread({ telefone: null, mensagens: [], temMais: false })
         setBusca("")
         setSender(novo)
     }
@@ -513,7 +626,7 @@ export default function PageMensagens() {
     const recarregar = useCallback(async () => {
         await Promise.all([
             response.refetchSilencioso(),
-            carregarThread(selecionadaRef.current)
+            carregarThread(selecionadaRef.current, { mesclar: true })
         ])
     }, [response, carregarThread])
 
@@ -665,8 +778,11 @@ export default function PageMensagens() {
                                         nome={conversaAtiva?.nome}
                                         mensagens={thread.telefone === selecionada ? thread.mensagens : []}
                                         carregando={carregandoThread}
+                                        temMais={thread.telefone === selecionada && thread.temMais}
+                                        carregandoAntigas={carregandoAntigas}
                                         onVoltar={voltarParaLista}
                                         onEnviarMensagem={enviarMensagem}
+                                        onCarregarAntigas={carregarAntigas}
                                     />
                                 ) : (
                                     <div className="card border-0 shadow-sm">

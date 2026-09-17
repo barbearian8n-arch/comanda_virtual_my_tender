@@ -52,9 +52,14 @@ const actions = {
                 throw new ValidationError("Informe o telefone da conversa")
             }
 
-            const mensagens = await waMessages.listMessages(sender, telefone)
+            // `antes_de` é o cursor da rolagem para cima; ausente = primeira página
+            const { antes_de } = req.query
 
-            res.status(200).json(mensagens)
+            const pagina = await waMessages.listMessages(sender, telefone, {
+                antesDoId: antes_de != null ? Number(antes_de) : null
+            })
+
+            res.status(200).json(pagina)
         }
     }
 }
