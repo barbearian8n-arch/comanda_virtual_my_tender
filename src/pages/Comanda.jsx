@@ -1,21 +1,14 @@
 import { useParams } from "react-router-dom"
 import { useRequest } from "../hooks/useRequest"
 import { getComanda, updateDeliveryFee, updateComandaValues, finishComanda } from "../services/comandas"
-import { formatPhone, formatPrice, formatUnit, formatName } from "../utils/formatters"
+import { formatPhone, formatPrice, formatUnit, formatName, formatDateTime as formatarDataHora } from "../utils/formatters"
+import { descreverStatus } from "../utils/comandaStatus"
 import { calculateComandaTotals } from "../utils/calculations"
 import { HandleResponse } from "../components/HandleResponse"
 import { useState } from "react"
 import toast from "react-hot-toast"
 
 export default function PageComanda() {
-    const statusMap = {
-        open: { label: "Aberta", class: "bg-success text-white" },
-        weighing: { label: "Pesando", class: "bg-warning text-white" },
-        closing: { label: "Fechando", class: "bg-warning text-white" },
-        confirming: { label: "Confirmando", class: "bg-warning text-white" },
-        closed: { label: "Fechada", class: "bg-secondary text-white" }
-    }
-
     const { key } = useParams()
     const comandaResp = useRequest(getComanda, [key])
 
@@ -72,13 +65,12 @@ export default function PageComanda() {
         }
     }
 
+    // os rótulos são desta tela; o formato vem dos formatters, um só no projeto
     function formatDateTime(date) {
         if (!date) return "Não informado"
         if (date === "agora") return "Imediata"
 
-        const dateObj = new Date(date)
-        if (isNaN(dateObj.getTime())) return date
-        return dateObj.toLocaleDateString('pt-BR', { day: '2-digit', month: '2-digit', year: 'numeric' }) + " às " + dateObj.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        return formatarDataHora(date) || date
     }
 
     return (
@@ -107,8 +99,8 @@ export default function PageComanda() {
                                         <p className="subtitle">Troco para: {formatPrice(data.delivery_payment_change)}</p>
                                     )}
                                 </div>
-                                <span className={`status-badge ${statusMap[data.status].class}`}>
-                                    {statusMap[data.status].label}
+                                <span className={`status-badge ${descreverStatus(data.status).classe}`}>
+                                    {descreverStatus(data.status).label}
                                 </span>
                             </div>
 

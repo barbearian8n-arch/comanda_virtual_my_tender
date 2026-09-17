@@ -67,6 +67,23 @@ export function formatPrice(price) {
     }).format(price)
 }
 
+/**
+ * `2026-09-17T14:12:30Z` → `17/09/2026 às 11:12`.
+ *
+ * Data vazia ou impossível volta string vazia — quem chama decide o que dizer no
+ * lugar, porque "Não informado" e "Imediata" são escolhas de tela, não de formato.
+ */
+export function formatDateTime(date) {
+    if (!date) return ""
+
+    const dateObj = new Date(date)
+    if (isNaN(dateObj.getTime())) return ""
+
+    return dateObj.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit", year: "numeric" })
+        + " às "
+        + dateObj.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" })
+}
+
 export function formatName(name) {
     if (!name) return ""
     return name.split(" - ")[0]

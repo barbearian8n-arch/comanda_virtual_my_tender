@@ -3,7 +3,7 @@ import toast from "react-hot-toast"
 import { HandleResponse, Loading } from "../components/HandleResponse"
 import { useRequest } from "../hooks/useRequest"
 import { useAutoRefresh } from "../hooks/useAutoRefresh"
-import { listSenders, listConversations, listMessages, uploadAudio } from "../services/agent"
+import { listSenders, listConversations, listMessages, sendMessage } from "../services/agent"
 import { formatPhone } from "../utils/formatters"
 
 const INTERVALO_MS = 60_000
@@ -230,27 +230,34 @@ function Balao({ mensagem }) {
     )
 }
 
-function Conversa({ telefone, nome, mensagens, carregando, onVoltar, onEnviarAudio }) {
+function Conversa({ telefone, nome, mensagens, carregando, onVoltar, onEnviarMensagem }) {
     const painelRef = useRef(null)
     const noFimRef = useRef(true)
     const telefoneRenderizadoRef = useRef(null)
     const [mostrarBotaoFim, setMostrarBotaoFim] = useState(false)
     const [enviando, setEnviando] = useState(false)
+    const [texto, setTexto] = useState("")
 
-    async function escolherArquivo(evento) {
-        const arquivo = evento.target.files?.[0]
+    async function enviar(evento) {
+        evento.preventDefault()
 
-        // limpo já: sem isso, escolher o MESMO arquivo de novo depois de um erro
-        // não dispara o onChange e parece que o botão travou
-        evento.target.value = ""
-
-        if (!arquivo) return
+        if (!texto.trim() || enviando) return
 
         setEnviando(true)
         try {
-            await onEnviarAudio(arquivo)
+            // só limpa depois de dar certo: falhou, o que foi escrito continua
+            // na caixa para tentar de novo em vez de ter de ser redigitado
+            await onEnviarMensagem(texto)
+            setTexto("")
         } finally {
             setEnviando(false)
+        }
+    }
+
+    // Enter envia, Shift+Enter quebra linha — é o que a mão já espera de um chat
+    function aoTeclar(evento) {
+        if (evento.key === "Enter" && !evento.shiftKey) {
+            enviar(evento)
         }
     }
 
@@ -361,33 +368,38 @@ function Conversa({ telefone, nome, mensagens, carregando, onVoltar, onEnviarAud
                 )}
             </div>
 
-            <div className="card-footer bg-white d-flex align-items-center gap-2 flex-wrap">
-                {/* <label> embrulhando um input escondido: é o jeito de ter um
-                    botão de verdade sem o seletor de arquivo cru do navegador */}
-                <label className={`btn btn-sm btn-outline-success mb-0 ${enviando ? "disabled" : ""}`}>
-                    {enviando ? (
-                        <>
-                            <span className="spinner-border spinner-border-sm me-2" role="status"></span>
-                            Enviando áudio…
-                        </>
-                    ) : (
-                        <>
-                            <i className="bi bi-mic-fill me-2"></i>Enviar áudio
-                        </>
-                    )}
-
-                    <input
-                        type="file"
-                        accept="audio/*"
-                        className="d-none"
+            <div className="card-footer bg-white">
+                <form onSubmit={enviar} className="d-flex gap-2 align-items-end">
+                    <textarea
+                        className="form-control"
+                        rows={2}
+                        maxLength={4096}
+                        placeholder="Escreva uma mensagem…"
+                        value={texto}
+                        onChange={(e) => setTexto(e.target.value)}
+                        onKeyDown={aoTeclar}
                         disabled={enviando}
-                        onChange={escolherArquivo}
+                        aria-label="Mensagem a enviar"
+                        style={{ resize: "none" }}
                     />
-                </label>
 
-                <span className="text-muted" style={{ fontSize: ".72rem" }}>
-                    A transcrição é feita depois, pelo robô.
-                </span>
+                    <button
+                        type="submit"
+                        className="btn btn-success flex-shrink-0"
+                        disabled={enviando || !texto.trim()}
+                        title="Enviar (Enter)"
+                    >
+                        {enviando ? (
+                            <span className="spinner-border spinner-border-sm" role="status"></span>
+                        ) : (
+                            <i className="bi bi-send-fill"></i>
+                        )}
+                    </button>
+                </form>
+
+                <div className="text-muted mt-1" style={{ fontSize: ".72rem" }}>
+                    Enter envia · Shift+Enter quebra linha. O robô continua respondendo esta conversa.
+                </div>
             </div>
         </div>
     )
@@ -470,23 +482,29 @@ export default function PageMensagens() {
     }
 
     /**
-     * O arquivo sobe e a conversa recarrega na hora — a lista também, porque o
-     * áudio vira a última mensagem e a prévia à esquerda ficaria desatualizada.
+     * Manda o texto e recarrega as duas metades — a lista também, porque a
+     * mensagem vira a última da conversa e a prévia à esquerda ficaria velha.
      *
-     * Erro vira toast e não derruba nada: o áudio não foi enviado, mas a
-     * conversa que estava na tela continua lá para tentar de novo.
+     * O erro sobe para quem chamou (além do toast): é ele que faz a caixa de
+     * texto preservar o que foi escrito em vez de limpar como se tivesse ido.
      */
-    const enviarAudio = useCallback(async (arquivo) => {
+    const enviarMensagem = useCallback(async (texto) => {
         const telefone = selecionadaRef.current
 
         if (!telefone || !senderRef.current) return
 
         try {
-            await uploadAudio(senderRef.current, telefone, arquivo)
+            const enviada = await sendMessage(senderRef.current, telefone, texto)
             await Promise.all([carregarThread(telefone), response.refetchSilencioso()])
-            toast.success("Áudio enviado")
+
+            // chegou ao cliente, mas não entrou no histórico: dizer "enviada" e
+            // calar isso deixaria a tela discordar do WhatsApp sem explicação
+            if (enviada?.registrada === false) {
+                toast("Enviada, mas não registrada no histórico", { icon: "⚠️" })
+            }
         } catch (error) {
             toast.error(error.response?.data?.message || error.message)
+            throw error
         }
     }, [carregarThread, response])
 
@@ -648,7 +666,7 @@ export default function PageMensagens() {
                                         mensagens={thread.telefone === selecionada ? thread.mensagens : []}
                                         carregando={carregandoThread}
                                         onVoltar={voltarParaLista}
-                                        onEnviarAudio={enviarAudio}
+                                        onEnviarMensagem={enviarMensagem}
                                     />
                                 ) : (
                                     <div className="card border-0 shadow-sm">

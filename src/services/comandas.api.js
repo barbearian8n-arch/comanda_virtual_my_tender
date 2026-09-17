@@ -1,14 +1,9 @@
-import axios from "axios"
+import { createApiClient } from "./http"
 
 export class ComandasAPI {
     constructor() {
         this.baseUrl = import.meta.env.VITE_API_URL
-        this.axios = axios.create({
-            baseURL: this.baseUrl,
-            headers: {
-                "Content-Type": "application/json"
-            }
-        })
+        this.axios = createApiClient()
     }
 
     async getComandas() {

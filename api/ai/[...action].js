@@ -1,6 +1,7 @@
 import { createHandler } from "../../infra/handlers.js"
 import waMessages from "../../models/waMessages.js"
 import { MethodNotAllowedError, NotFoundError, ValidationError } from "../../infra/errors.js"
+import { requirePermissao } from "../../infra/authMiddleware.js"
 
 const handler = createHandler()
 
@@ -28,21 +29,13 @@ const actions = {
             res.status(200).json(conversas)
         }
     },
-    // Upload de áudio da loja para a conversa. O arquivo vem no corpo como
-    // application/octet-stream e o tipo real no cabeçalho — se fosse pelo
-    // Content-Type, a Vercel tentaria interpretar o corpo em vez de entregá-lo
-    // como Buffer.
-    audio: {
+    // Envia um texto da loja para o cliente pelo Evolution e grava a linha.
+    // Host e instância saem da config da empresa; a chave, do EVO_KEY.
+    send: {
         post: async (req, res) => {
-            const { sender, telefone } = req.query
+            const { sender, telefone, texto } = req.body || {}
 
-            const contentType = (req.headers["x-audio-content-type"] || req.headers["content-type"] || "")
-                .split(";")[0]
-                .trim()
-
-            const buffer = Buffer.isBuffer(req.body) ? req.body : null
-
-            const mensagem = await waMessages.uploadAudio(sender, telefone, buffer, contentType)
+            const mensagem = await waMessages.sendMessage(sender, telefone, texto)
 
             res.status(200).json(mensagem)
         }
@@ -77,6 +70,10 @@ function getActionEntry(req) {
 
     return entry
 }
+
+// Toda a tela de Mensagens é interna: ler conversa de cliente exige conta.
+handler.middleware.get(requirePermissao("mensagem.view"))
+handler.middleware.post(requirePermissao("mensagem.send"))
 
 handler.get(async (req, res) => {
     const entry = getActionEntry(req)
