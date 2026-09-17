@@ -26,11 +26,7 @@ const isVercel = env === "production";
 if (isVercel) {
     config.rewrites = [
         {
-            "source": "/api/(.*)",
-            "destination": "/api/$1"
-        },
-        {
-            "source": "/(.*)",
+            "source": "/((?!api/).*)",
             "destination": "/"
         }
     ]

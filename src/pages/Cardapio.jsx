@@ -1,4 +1,4 @@
-import { useMemo, useEffect, useState } from "react"
+import { useMemo, useEffect, useState, useCallback, useRef } from "react"
 import { useSearchParams } from "react-router-dom"
 import { useRequest } from "../hooks/useRequest"
 import { getProdutos, getCategorias } from "../services/produtos"
@@ -19,6 +19,9 @@ export default function PageCardapio() {
     const [produtoSelecionado, setProdutoSelecionado] = useState(null)
     const [carrinhoOpen, setCarrinhoOpen] = useState(false)
     const [carrinhoCount, setCarrinhoCount] = useState(0)
+    const [searchTerm, setSearchTerm] = useState("")
+    const [debouncedSearch, setDebouncedSearch] = useState("")
+    const debounceRef = useRef(null)
 
     const comandaKey = getCookie("comanda_key")
     const modoCliente = !!comandaKey
@@ -96,6 +99,21 @@ export default function PageCardapio() {
             <div className="page-content bg-white shadow-sm p-4 text-center rounded-bottom mb-3 mx-3 mt-3 rounded-4">
                 <h3 className="mb-1 fw-bold text-danger">Nosso Cardápio</h3>
                 <p className="text-muted small mb-0">Confira nossas opções e faça seu pedido!</p>
+                <div className="mt-3">
+                    <div className="input-group shadow-sm rounded-pill overflow-hidden border">
+                        <span className="input-group-text bg-white border-0 text-muted ps-3 pe-2">
+                            <i className="bi bi-search"></i>
+                        </span>
+                        <input
+                            type="text"
+                            className="form-control border-0 py-2 ps-1 shadow-none"
+                            placeholder="Buscar item..."
+                            value={searchTerm}
+                            onChange={handleSearchChange}
+                            style={{ outline: "none", boxShadow: "none" }}
+                        />
+                    </div>
+                </div>
             </div>
 
             <HandleResponse response={categoriasResponse}>
@@ -103,7 +121,7 @@ export default function PageCardapio() {
                     <div className="px-3 pb-3 overflow-auto d-flex" style={{ whiteSpace: 'nowrap', WebkitOverflowScrolling: 'touch' }}>
                         <button
                             className={`btn rounded-pill me-2 px-4 shadow-sm fw-semibold border-0 ${isTodosActive ? 'btn-danger text-white' : 'bg-white text-dark'}`}
-                            onClick={() => setSearchParams({ categoria: "todos" })}
+                            onClick={() => handleCategoriaClick("todos")}
                             style={{ transition: '0.2s', minWidth: 'fit-content' }}
                         >
                             Todos
@@ -112,7 +130,7 @@ export default function PageCardapio() {
                             <button
                                 key={cat}
                                 className={`btn rounded-pill me-2 px-4 shadow-sm fw-semibold border-0 ${selectedCategoria === cat ? 'btn-danger text-white' : 'bg-white text-dark'}`}
-                                onClick={() => setSearchParams({ categoria: cat })}
+                                onClick={() => handleCategoriaClick(cat)}
                                 style={{ transition: '0.2s', minWidth: 'fit-content' }}
                             >
                                 {cat}
