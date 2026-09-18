@@ -269,6 +269,22 @@ async function listInstances() {
 }
 
 /**
+ * O formato do QR muda conforme a resposta: `create` devolve `{ qrcode: { base64 } }`
+ * e `connect` devolve `base64` na raiz. Pior, o `base64` às vezes vem cru, sem o
+ * `data:image/png;base64,` na frente — e aí o <img> não pinta nada, deixando a
+ * moldura vazia sem nenhum erro para explicar. Normaliza tudo numa data URI só.
+ */
+function extrairQrCode(bruto) {
+    const base64 = bruto?.base64 ?? bruto?.qrcode?.base64 ?? null;
+
+    if (!base64) {
+        return null;
+    }
+
+    return base64.startsWith("data:") ? base64 : `data:image/png;base64,${base64}`;
+}
+
+/**
  * Cria no Evolution e registra aqui.
  *
  * Cria LÁ primeiro: o servidor recusa nome repetido, e é essa recusa que impede
@@ -312,14 +328,28 @@ async function createInstance(nome) {
         throw insertError;
     }
 
+    // Best-effort aqui, ao contrário de `setPrimary`: a instância já existe no
+    // servidor e o QR desta resposta é o único que a pessoa vai ver. Derrubar a
+    // criação por causa do webhook perderia as duas coisas — e a segunda
+    // tentativa esbarraria no nome já usado. A falha volta em `webhookErro` e o
+    // robô só fica mudo até alguém promover a conexão de novo.
+    let webhookErro = null;
+
     if (linha.is_primary) {
-        await configurarWebhook(linha.instance_name);
+        try {
+            await configurarWebhook(linha.instance_name);
+        } catch (error) {
+            webhookErro = error.message;
+            console.error("Falha ao configurar o webhook da instância nova:", error.message);
+        }
+
         await sincronizarConfig(linha);
     }
 
     return {
         instancia: linha,
-        qrcode: criada?.qrcode?.base64 ?? null
+        webhookErro,
+        qrcode: extrairQrCode(criada?.qrcode)
     };
 }
 
@@ -329,7 +359,7 @@ async function connectInstance(id) {
     const host = await getHost();
 
     const resposta = await evolution.connect(host, linha.instance_name);
-    const qrcode = resposta?.base64 ?? resposta?.qrcode?.base64 ?? null;
+    const qrcode = extrairQrCode(resposta);
 
     const estado = await evolution.connectionState(host, linha.instance_name).catch(() => null);
     const atualizada = await sincronizarEstado(linha, estado);

@@ -17,6 +17,13 @@ import { formatPhone } from "../utils/formatters"
 /** De quanto em quanto o estado é reconsultado enquanto o QR está na tela. */
 const INTERVALO_QR_MS = 3000
 
+/**
+ * De quanto em quanto um QR novo é pedido. O código do Baileys vence sozinho em
+ * pouco mais de um minuto: sem trocar, quem demora a pegar o celular lê um
+ * código morto e o pareamento simplesmente não acontece, sem erro nenhum.
+ */
+const INTERVALO_REGERAR_MS = 30_000
+
 const ESTADOS = {
     open: { rotulo: "Conectado", cor: "success", icone: "bi-check-circle-fill" },
     close: { rotulo: "Desconectado", cor: "danger", icone: "bi-x-circle-fill" },
@@ -48,8 +55,14 @@ export default function PageWhatsApp() {
                 </div>
             </div>
 
+            {/*
+                Recarga SILENCIOSA de propósito. `refetch` acende o `loading`, e
+                aí o HandleResponse troca a lista por spinner — o que desmonta
+                `Conexoes` e joga fora o estado dela, inclusive o QR que a ação
+                acabou de trazer. O modal nunca chegava a abrir.
+            */}
             <HandleResponse response={response}>
-                {(instancias) => <Conexoes instancias={instancias} onMudou={response.refetch} />}
+                {(instancias) => <Conexoes instancias={instancias} onMudou={response.refetchSilencioso} />}
             </HandleResponse>
         </div>
     )
@@ -91,12 +104,8 @@ function Conexoes({ instancias, onMudou }) {
             return
         }
 
-        if (!r.qrcode) {
-            toast("Sem QR no momento — tente reiniciar a conexão", { icon: "⚠️" })
-            return
-        }
-
-        setQr({ id: instancia.id, nome: instancia.instance_name, imagem: r.qrcode })
+        // sem QR na resposta o modal não fica vazio: ele pede outro sozinho
+        setQr({ id: instancia.id, nome: instancia.instance_name, imagem: r.qrcode ?? null })
     }
 
     async function criar(evento) {
@@ -111,8 +120,18 @@ function Conexoes({ instancias, onMudou }) {
             setNova("")
             await onMudou()
 
-            if (r?.qrcode) {
-                setQr({ id: r.instancia.id, nome: r.instancia.instance_name, imagem: r.qrcode })
+            // O webhook não derruba mais a criação, mas ninguém pode sair daqui
+            // achando que o robô já vai atender.
+            if (r?.webhookErro) {
+                toast.error(
+                    `Conexão criada, mas o webhook não foi configurado: ${r.webhookErro} ` +
+                    "Use \"Tornar principal\" depois de parear.",
+                    { duration: 12_000 }
+                )
+            }
+
+            if (r?.instancia) {
+                setQr({ id: r.instancia.id, nome: r.instancia.instance_name, imagem: r.qrcode ?? null })
             }
         } catch (error) {
             toast.error(error.response?.data?.message || error.message)
@@ -330,11 +349,54 @@ function Cartao({ instancia, ocupado, onConectar, onDesconectar, onReiniciar, on
  */
 function ModalQr({ qr, onFechar, onConectou }) {
     const [segundos, setSegundos] = useState(0)
+    const [imagem, setImagem] = useState(qr.imagem)
+    const [regerando, setRegerando] = useState(!qr.imagem)
+    const [erro, setErro] = useState(null)
     const onConectouRef = useRef(onConectou)
+    const vivoRef = useRef(true)
 
     useEffect(() => {
         onConectouRef.current = onConectou
     })
+
+    useEffect(() => {
+        vivoRef.current = true
+        return () => {
+            vivoRef.current = false
+        }
+    }, [])
+
+    const regerar = useCallback(async () => {
+        setRegerando(true)
+
+        try {
+            const r = await connectInstance(qr.id)
+
+            if (!vivoRef.current) return
+
+            if (r?.conectada) {
+                onConectouRef.current()
+                return
+            }
+
+            setImagem(r?.qrcode ?? null)
+            setErro(r?.qrcode ? null : "O servidor não devolveu um QR — tentando de novo.")
+        } catch (error) {
+            if (!vivoRef.current) return
+            setErro(error.response?.data?.message || error.message)
+        } finally {
+            if (vivoRef.current) setRegerando(false)
+        }
+    }, [qr.id])
+
+    // Criada sem QR na resposta: busca um agora, em vez de deixar a moldura
+    // vazia até o primeiro ciclo.
+    useEffect(() => {
+        if (!qr.imagem) regerar()
+
+        const timer = setInterval(regerar, INTERVALO_REGERAR_MS)
+        return () => clearInterval(timer)
+    }, [qr.imagem, regerar])
 
     useEffect(() => {
         let ativo = true
@@ -380,21 +442,41 @@ function ModalQr({ qr, onFechar, onConectou }) {
                         No celular: WhatsApp › Aparelhos conectados › Conectar um aparelho
                     </p>
 
-                    <img
-                        src={qr.imagem}
-                        alt="QR Code para conectar o WhatsApp"
-                        className="img-fluid border rounded mb-3"
-                        style={{ maxWidth: 280 }}
-                    />
+                    {erro && <div className="alert alert-warning small py-2">{erro}</div>}
+
+                    {imagem ? (
+                        <img
+                            src={imagem}
+                            alt="QR Code para conectar o WhatsApp"
+                            className="img-fluid border rounded mb-3"
+                            style={{ maxWidth: 280 }}
+                        />
+                    ) : (
+                        <div className="py-5 text-muted">
+                            <div className="spinner-border text-danger mb-3" role="status"></div>
+                            <div>Gerando o QR code…</div>
+                        </div>
+                    )}
 
                     <div className="text-muted small mb-3">
                         <span className="spinner-border spinner-border-sm me-2" role="status"></span>
                         Esperando a leitura… ({Math.round(segundos)}s)
                     </div>
 
-                    <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onFechar}>
-                        Fechar
-                    </button>
+                    <div className="d-flex gap-2 justify-content-center">
+                        <button
+                            type="button"
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={regerar}
+                            disabled={regerando}
+                        >
+                            <i className="bi bi-arrow-clockwise me-1"></i>
+                            {regerando ? "Gerando…" : "Gerar outro"}
+                        </button>
+                        <button type="button" className="btn btn-outline-secondary btn-sm" onClick={onFechar}>
+                            Fechar
+                        </button>
+                    </div>
                 </div>
             </div>
         </div>
